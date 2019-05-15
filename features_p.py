@@ -10,7 +10,7 @@ def verb_proportion(text, tags):
 	"""Anteil der Verben"""
 	verb_count = 0
 	total = len(tags)
-	for word, tag in tags.items():
+	for word, tag in tags:
 		if tag["pos"][0] == "V":
 			verb_count += 1
 	

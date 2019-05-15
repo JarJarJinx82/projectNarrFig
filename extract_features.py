@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 import sys, os
 import subprocess
 from inspect import getmembers, isfunction
+from nltk import word_tokenize
 
 """Class for parsing and handling Catma"""
 class Catma:
@@ -26,8 +27,7 @@ class Catma:
 	def getDP(self):
 		text = self.root.find(f".//{self.tei}body/{self.tei}ab").text
 		personen = re.search("Personen Personen. (.*) 1.", text)
-		personen = personen.group(1).split(".")
-		personen = [elem.strip() for elem in personen]
+		personen = word_tokenize(personen.group(1))
 		return personen
 
 	# function to make types easily lookupable
@@ -51,7 +51,6 @@ class Catma:
 		idDict = {}
 		#iterate over all id -> typeID nodes
 		for fs in self.root.findall(f".//{self.tei}text/{self.tei}fs"):
-			#creating dict entry that connects id(ana) and typeID
 			#creating dict entry that connects id(ana) and typeID
 			idDict[fs.attrib[f"{self.xml}id"]] = fs.attrib["type"]
 		return idDict
@@ -96,7 +95,7 @@ class Catma:
 class RFTagger:
 	def __init__(self, text):
 		self.text = text
-		self.tags = {}
+		self.tags = []
 		# use RFTagger to pos-tag the text
 		os.chdir("RFTagger")
 		with open("tmp.txt", "w") as tmp:
@@ -127,7 +126,7 @@ class RFTagger:
 					for i, elem in enumerate(tmpTags[1:]):
 						attribs[i] = elem
 			tmpDict["attributes"] = attribs
-			self.tags[row[0]] = tmpDict
+			self.tags.append((row[0], tmpDict))
 
 	# helper methods for pos-tag-parsing
 	def pos_kng(self, tags):
@@ -323,6 +322,10 @@ def extract_blocks(cat) -> list:
 
 	return listOfBlocks
 
+
+"""Special functions, that can't be in other file"""
+def contains_neper_local(text, tags):
+	pass
 
 if __name__ == "__main__":
 	"""Preparation"""
