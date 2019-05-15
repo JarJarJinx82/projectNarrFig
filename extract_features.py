@@ -5,6 +5,7 @@ import csv
 import xml.etree.ElementTree as ET
 import sys, os
 import subprocess
+from inspect import getmembers, isfunction
 
 """Class for parsing and handling Catma"""
 class Catma:
@@ -82,33 +83,19 @@ class Catma:
 			else:
 				return self.getBaseTypeHelper(self.typeDict[typeID]["baseType"])
 
-
-
-
-"""Class for all the Blocks to contain the plain Text and
-its annotations"""
-class Block:
-
-	"""principal methods"""
-	# constructor (runs every time an instance of this class is created)
-	def __init__(self, listOfSegs):
-		self.segments = listOfSegs
-		self.text = self.extractText()
-		self.properties = self.extractProps()
-		self.tags = self.getTags()
-
-	# get pos tags from RFTagger
-	def getTags(self):
-		tags = {}
+class RFTagger:
+	def __init__(self, text):
+		self.text = text
+		self.tags = {}
 		# use RFTagger to pos-tag the text
 		os.chdir("RFTagger")
 		with open("tmp.txt", "w") as tmp:
-			tmp.write(self.text)
-		rftags = subprocess.check_output("bash cmd/rftagger-german tmp.txt", shell=True)
+			tmp.write(text)
+		self.rftags = subprocess.check_output("bash cmd/rftagger-german tmp.txt", shell=True)
 		os.remove("tmp.txt")
 		os.chdir("..")
 		# read the results and parse them into a dict
-		rows = rftags.decode().split("\n")
+		rows = self.rftags.decode().split("\n")
 		for row in csv.reader(rows, delimiter="\t"):
 			if len(row) == 0:
 				continue
@@ -118,7 +105,7 @@ class Block:
 			tmpTags = row[1].split(".")
 			tmpDict["pos"] = pos = tmpTags[0]
 			# getting the more complicated ones with the helper functinos
-			helperfunc = eval("self.pos_"+pos)  # dirty trick to call function
+			helperfunc = eval("self.pos_" + pos)  # dirty trick to call function
 			try:
 				attribs = helperfunc(tmpTags[1:])
 			except IndexError:
@@ -130,46 +117,7 @@ class Block:
 					for i, elem in enumerate(tmpTags[1:]):
 						attribs[i] = elem
 			tmpDict["attributes"] = attribs
-			tags[row[0]] = tmpDict
-		return tags
-
-
-
-	# get the plain Text content of the part
-	def extractText(self) -> str:
-		retstr = ""
-		for seg in self.segments:
-			retstr += seg.text
-		return retstr
-	
-	# extract properties of the text -> narration, falsification, ...
-	def extractProps(self) -> dict:
-		global anno
-		containsNarr = False
-		isFalsified = False
-		for seg in self.segments:
-			types = anno.getBaseType(seg.attrib["ana"], all=True)
-
-			if "Narrative_Figurenrede" in types:
-				containsNarr = True
-			if "Falsifizierte_Figurenrede" in types:
-				isFalsified = True
-		props = {"narrative": containsNarr, "falsified": isFalsified}
-		return props
-	
-	
-	"""helper methods and deluxe stuff"""
-
-	# functions to make the okbject printable
-	def __repr__(self):
-		out = self.text + "\n"
-		for k, v in self.properties.items():
-			k += ":"
-			out+= f"{k:15}{v}\n"
-		return out
-
-	def __str__(self):
-		return self.__repr__()
+			self.tags[row[0]] = tmpDict
 
 	# helper methods for pos-tag-parsing
 	def pos_kng(self, tags):
@@ -246,7 +194,7 @@ class Block:
 		return {"type": tags[0]}
 
 	def pos_SYM(self, tags):
-		retDict = {"type":tags[0], "subtype": tags[1]}
+		retDict = {"type": tags[0], "subtype": tags[1]}
 		return retDict
 
 	def pos_TRUNC(self, tags):
@@ -275,6 +223,59 @@ class Block:
 		retDict = {"type": tags[0],
 				   "subtype": tags[1]}
 		return retDict
+
+
+"""Class for all the Blocks to contain the plain Text and
+its annotations"""
+class Block:
+
+	"""principal methods"""
+	# constructor (runs every time an instance of this class is created)
+	def __init__(self, listOfSegs):
+		self.segments = listOfSegs
+		self.text = self.extractText()
+		self.properties = self.extractProps()
+		rf = RFTagger(self.text)
+		self.tags = rf.tags
+
+
+	# get the plain Text content of the part
+	def extractText(self) -> str:
+		retstr = ""
+		for seg in self.segments:
+			retstr += seg.text
+		return retstr
+	
+	# extract properties of the text -> narration, falsification, ...
+	def extractProps(self) -> dict:
+		global anno
+		containsNarr = False
+		isFalsified = False
+		for seg in self.segments:
+			types = anno.getBaseType(seg.attrib["ana"], all=True)
+
+			if "Narrative_Figurenrede" in types:
+				containsNarr = True
+			if "Falsifizierte_Figurenrede" in types:
+				isFalsified = True
+		props = {"narrative": containsNarr, "falsified": isFalsified}
+		return props
+	
+	
+	"""helper methods and deluxe stuff"""
+
+	# functions to make the object printable
+	def __repr__(self):
+		out = self.text + "\n"
+		for k, v in self.properties.items():
+			k += ":"
+			out+= f"{k:15}{v}\n"
+		return out
+
+	def __str__(self):
+		return self.__repr__()
+
+
 
 
 """Eats catma annotations as ElementTree and spits out a list
@@ -310,66 +311,65 @@ def extract_blocks(cat) -> list:
 
 """All the Feature Extraction funcitons"""
 
-def extract_wordcount(text, tags):
+def wordcount(text, tags):
 	return len(text.split())
 
 def get_first_pos(text, tags):
 	return tags[text.split()[0]]["pos"]
 
-import features_m, features_j
 
 
-"""Preparation"""
-# Dictionary with all implemented Features and their extraction Function
-features = {"wordcount":extract_wordcount, "first_pos": get_first_pos}
 
-for k, v in features_j.func_dict.items():
-	features[k] = eval("features_j."+v)
-for k, v in features_m.func_dict.items():
-	features[k] = eval("features_m."+v)
-
-
-# command line ui, including parsing of wished features
-parser = argparse.ArgumentParser(description="Extract features from Catma annotated Files")
-parser.add_argument("files", type=str, nargs="+", help="Filenames of the annotations.")
-parser.add_argument("--notablehead", action="store_const", const=True, default=False)
-# create a cl argument entry for every feature
-for f in features.keys():
-	parser.add_argument("--"+f, action="store_const", const=True, default=False)
-
-# parse the Arguments, normally left empty, here full just for debugging
-args = parser.parse_args()
+if __name__ == "__main__":
+	"""Preparation"""
+	# imports all the extraction functions from named modules
+	my_imports = ["features_m", "features_j", "features_p"]
+	func_list = [wordcount, get_first_pos]
+	for imp in my_imports:
+		mod = __import__(imp)
+		func_list += [o[1] for o in getmembers(mod) if isfunction(o[1])]
 
 
-"""extracting all the features"""
-outData = []
-if not args.notablehead:
-	outData.append(["Personenrede", *list(features.keys()), "Narrativer_Anteil", "falsifiziert"])
+	# command line ui, including parsing of wished features
+	parser = argparse.ArgumentParser(description="Extract features from Catma annotated Files")
+	parser.add_argument("files", type=str, nargs="+", help="Filenames of the annotations.")
+	parser.add_argument("--notablehead", action="store_const", const=True, default=False)
+	# create a cl argument entry for every feature
+	for f in func_list:
+		parser.add_argument("--"+f.__name__, action="store_const", const=True, default=False)
 
-# iterate over the different files
-for inf in args.files:
-	# get the annotation
-	anno = Catma(inf)
-	# get the Blocks from the annotation
-	ListOfPersonenreden = extract_blocks(anno)
-	# iterate over the annotated Blocks
-	for personenrede in ListOfPersonenreden:
-		retVal = ["'"+personenrede.text+"'"]
-		# extract all the wished features
-		for feat, func in features.items():
-			if eval("args." + feat):
-				retVal.append(func(personenrede.text, personenrede.tags))
-		# complete the data and append it to the data collection		
-		retVal.append(personenrede.properties["narrative"])
-		retVal.append(personenrede.properties["falsified"])
-		outData.append(retVal)
+	args = parser.parse_args()
 
 
-"""outputting results to file"""
-# creating a timestamp
-ts = time.strftime("%Y%m%d-%H%M")
-ofName = f"features_{ts}.csv"
-# write the list of lists as a csv
-with open(ofName, "w") as of:
-	writer = csv.writer(of)
-	writer.writerows(outData)
+	"""extracting all the features"""
+	outData = []
+	if not args.notablehead:
+		outData.append(["Personenrede", *list(features.keys()), "Narrativer_Anteil", "falsifiziert"])
+
+	# iterate over the different files
+	for inf in args.files:
+		# get the annotation
+		anno = Catma(inf)
+		# get the Blocks from the annotation
+		ListOfPersonenreden = extract_blocks(anno)
+		# iterate over the annotated Blocks
+		for personenrede in ListOfPersonenreden:
+			retVal = ["'"+personenrede.text+"'"]
+			# extract all the wished features
+			for func in func_list:
+				if eval("args." + func.__name__):
+					retVal.append(func(personenrede.text, personenrede.tags))
+			# complete the data and append it to the data collection
+			retVal.append(personenrede.properties["narrative"])
+			retVal.append(personenrede.properties["falsified"])
+			outData.append(retVal)
+
+
+	"""outputting results to file"""
+	# creating a timestamp
+	ts = time.strftime("%Y%m%d-%H%M")
+	ofName = f"features_{ts}.csv"
+	# write the list of lists as a csv
+	with open(ofName, "w") as of:
+		writer = csv.writer(of)
+		writer.writerows(outData)

@@ -1,16 +1,15 @@
 #!/usr/bin/python3
 
-func_dict = {"example_p": "extract_example_p", "anteil_verb": "extract_anteil_verb"}
 
-def extract_example_p(text, tags):
-    return "Beispiel J"
-    
-    
-def extract_anteil_verb(text, tags):
+def example_p(text, tags):
+	return "Beispiel P"
+
+
+def anteil_verb(text, tags):
 	verb_count = 0
 	total = len(tags)
-	for word in tags:
-		if word.pos == "verb":
+	for word, tag in tags.items():
+		if tag["pos"][0] == "V":
 			verb_count += 1
 	
 	result = verb_count/ total
@@ -20,16 +19,16 @@ def extract_anteil_verb(text, tags):
 
 if __name__ == "__main__":
 	import pickle
-	testfile = open("test.test", "rb")
-	text = pickle.load(testfile)
-	tags = pickle.load(testfile)
-	testfile.close()
+	import inspect
+	import sys
+
+	with open("test.test", "rb") as testfile:
+		tags = pickle.load(testfile)
+		text = pickle.load(testfile)
 	res = []
-	for k, v in func_dict:
-		func = eval(v)
-		res.append(func(text, tags))
+	functions = [obj for name, obj in inspect.getmembers(sys.modules[__name__]) if inspect.isfunction(obj)]
+	for f in functions:
+		res.append((f.__name__, f(text, tags)))
 	print(text)
 	for elem in res:
-		print(elem)
-	
-		
+		print(elem[0], elem[1])
