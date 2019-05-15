@@ -319,10 +319,11 @@ if __name__ == "__main__":
 	# command line ui, including parsing of wished features
 	parser = argparse.ArgumentParser(description="Extract features from Catma annotated Files")
 	parser.add_argument("files", type=str, nargs="+", help="Filenames of the annotations.")
-	parser.add_argument("--notablehead", action="store_const", const=True, default=False, help="Exclude table head from csv.")
+	parser.add_argument("-n", "--notablehead", action="store_const", const=True, default=False, help="Exclude table head from csv.")
 	# create a cl argument entry for every feature
+	group = parser.add_argument_group("Features")
 	for f in func_list:
-		parser.add_argument("--"+f.__name__, action="store_const", const=True, default=False, help=f.__doc__)
+		group.add_argument("--"+f.__name__, action="store_const", const=True, default=False, help=f.__doc__)
 	args = parser.parse_args()
 
 	"""extracting all the features"""
