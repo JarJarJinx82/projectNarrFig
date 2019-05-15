@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 
-def extract_example_m(text, tags):
+def example_m(text, tags):
+	"""Beispielfunktion von Michi"""
 	return "Beispiel M"
 
 

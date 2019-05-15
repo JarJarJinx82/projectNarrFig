@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 
-def extract_example_j(text, tags):
+def example_j(text, tags):
+	"""Beispielfunktion von Juli"""
 	return "Beispiel J"
 
 

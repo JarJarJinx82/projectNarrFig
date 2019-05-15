@@ -307,39 +307,23 @@ def extract_blocks(cat) -> list:
 	return listOfBlocks
 
 
-
-
-"""All the Feature Extraction funcitons"""
-
-def wordcount(text, tags):
-	return len(text.split())
-
-def get_first_pos(text, tags):
-	return tags[text.split()[0]]["pos"]
-
-
-
-
 if __name__ == "__main__":
 	"""Preparation"""
 	# imports all the extraction functions from named modules
 	my_imports = ["features_m", "features_j", "features_p"]
-	func_list = [wordcount, get_first_pos]
+	func_list = []
 	for imp in my_imports:
 		mod = __import__(imp)
 		func_list += [o[1] for o in getmembers(mod) if isfunction(o[1])]
 
-
 	# command line ui, including parsing of wished features
 	parser = argparse.ArgumentParser(description="Extract features from Catma annotated Files")
 	parser.add_argument("files", type=str, nargs="+", help="Filenames of the annotations.")
-	parser.add_argument("--notablehead", action="store_const", const=True, default=False)
+	parser.add_argument("--notablehead", action="store_const", const=True, default=False, help="Exclude table head from csv.")
 	# create a cl argument entry for every feature
 	for f in func_list:
-		parser.add_argument("--"+f.__name__, action="store_const", const=True, default=False)
-
+		parser.add_argument("--"+f.__name__, action="store_const", const=True, default=False, help=f.__doc__)
 	args = parser.parse_args()
-
 
 	"""extracting all the features"""
 	outData = []
