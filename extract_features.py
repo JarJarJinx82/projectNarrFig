@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import argparse, time
+import re
 import csv
 import xml.etree.ElementTree as ET
 import sys, os
@@ -19,6 +20,15 @@ class Catma:
 		self.root = self.tree.getroot()
 		self.typeDict = self.create_typeDict()
 		self.idDict = self.create_idDict()
+		self.dp = self.getDP()
+
+	# parse Dramatis Personae
+	def getDP(self):
+		text = self.root.find(f".//{self.tei}body/{self.tei}ab").text
+		personen = re.search("Personen Personen. (.*) 1.", text)
+		personen = personen.group(1).split(".")
+		personen = [elem.strip() for elem in personen]
+		return personen
 
 	# function to make types easily lookupable
 	def create_typeDict(self):
@@ -231,8 +241,9 @@ class Block:
 
 	"""principal methods"""
 	# constructor (runs every time an instance of this class is created)
-	def __init__(self, listOfSegs):
+	def __init__(self, listOfSegs, sprecher):
 		self.segments = listOfSegs
+		self.sprecher = sprecher
 		self.text = self.extractText()
 		self.properties = self.extractProps()
 		rf = RFTagger(self.text)
@@ -284,24 +295,30 @@ def extract_blocks(cat) -> list:
 	listOfBlocks = []
 	inBlock = False  # remembers if right now in Block while iterating
 	tmp = []  # list of Segments that belong to same Block
+	sprecher = None
 	# iterating over all catma-segments
 	segments = cat.root.findall(f".//{cat.tei}seg")
 	for i, seg in enumerate(segments):
 		print(f"\nSegment #{i+1} of {len(segments)}", file=sys.stderr)
 		baseType = cat.getBaseType(seg.attrib["ana"])
 		isFigurenrede = baseType == "Figurenrede"
+		isSprecher = "Sprecherfigur" in cat.getType(seg.attrib["ana"])
 		if inBlock:
 			if isFigurenrede:  # inside of block
 				tmp.append(seg)
 			else:  # end of Block
-				temp_block = Block(tmp)
+				temp_block = Block(tmp, sprecher)
 				listOfBlocks.append(temp_block)
 				tmp = []
+				sprecher = None
+				inBlock = False
 		else:
 			if isFigurenrede:  # start of block
 				inBlock = True
 				tmp.append(seg)
 			else:  # outside of block
+				if isSprecher:
+					sprecher = seg.text
 				continue
 
 	return listOfBlocks
@@ -329,7 +346,7 @@ if __name__ == "__main__":
 	"""extracting all the features"""
 	outData = []
 	if not args.notablehead:
-		outData.append(["Personenrede", *list(features.keys()), "Narrativer_Anteil", "falsifiziert"])
+		outData.append(["Personenrede", *[f.__name__ for f in func_list], "Narrativer_Anteil", "falsifiziert"])
 
 	# iterate over the different files
 	for inf in args.files:
