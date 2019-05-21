@@ -110,6 +110,7 @@ class RFTagger:
 				continue
 			# creating the dictionary and adding the easy ones
 			tmpDict = {}
+			tmpDict["word"] = row[0]
 			tmpDict["lemma"] = row[2]
 			tmpTags = row[1].split(".")
 			tmpDict["pos"] = pos = tmpTags[0]
