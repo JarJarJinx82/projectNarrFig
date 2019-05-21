@@ -124,6 +124,7 @@ class RFTagger:
 
 			# creating the dictionary and adding the easy ones
 			tmpDict = {}
+			tmpDict["rftag"] = row[1]
 			tmpDict["lemma"] = row[2]
 			tmpTags = row[1].split(".")
 			tmpDict["pos"] = pos = tmpTags[0]
@@ -132,23 +133,27 @@ class RFTagger:
 			try:
 				attribs = helperfunc(tmpTags[1:])
 			except IndexError:
-				print("Warning: POS-tag incomplete: " + row[0], file=sys.stderr)
 				if len(tmpTags[1:]) == 0:
 					attribs = None
 				else:
 					attribs = {}
 					for i, elem in enumerate(tmpTags[1:]):
 						attribs[i] = elem
+				print("Warning: POS-tag incomplete: " + row[0] + "\n\t-> " + tmpDict["rftag"] + "\n\t->", attribs, file=sys.stderr)
 			tmpDict["attributes"] = attribs
 			self.tags.append((row[0], tmpDict))
 
 	# helper methods for pos-tag-parsing
 	def pos_kng(self, tags):
-		if len(tags) == 0:
-			print("Warning: POS-tag incomplete.", file=sys.stderr)
+		if len(tags) == 2:
+			retDict = {"case" : "*",
+					   "number" : tags[0],
+					   "gender" : tags[1]}
+		elif len(tags) == 0:
+			print("Warning: POS-tag incomplete." + "\n\t->", tags, file=sys.stderr)
 			retDict = None
-		elif len(tags) < 3:
-			print("Warning: POS-tag incomplete.", file=sys.stderr)
+		elif len(tags) == 1:
+			print("Warning: POS-tag incomplete." + "\n\t->", tags, file=sys.stderr)
 			retDict = {}
 			for i, elem in enumerate(tags):
 				retDict[i] = elem
@@ -173,7 +178,10 @@ class RFTagger:
 		return {"case": tags[0]}
 
 	def pos_APPR(self, tags):
-		return {"case": tags[0]}
+		if len(tags) == 0:
+			return {"case": "*"}
+		else:
+			return {"case": tags[0]}
 
 	def pos_APPRART(self, tags):
 		return self.pos_kng(tags)
@@ -238,8 +246,9 @@ class RFTagger:
 		return retDict
 
 	def pos_VINF(self, tags):
-		retDict = {"type": tags[0],
-				   "subtype": tags[1]}
+		retDict = {"type": tags[0]}
+		if len(tags) == 2:
+			retDict["subtype"] = tags[1]
 		return retDict
 
 	def pos_VPP(self, tags):
@@ -315,7 +324,7 @@ def extract_blocks(cat) -> list:
 	# iterating over all catma-segments
 	segments = cat.root.findall(f".//{cat.tei}seg")
 	for i, seg in enumerate(segments):
-		print(f"\nSegment #{i+1} of {len(segments)}", file=sys.stderr)
+		#print(f"\nSegment #{i+1} of {len(segments)}", file=sys.stderr)
 		baseType = cat.getBaseType(seg.attrib["ana"])
 		isFigurenrede = baseType == "Figurenrede"
 		isSprecher = "Sprecherfigur" in cat.getType(seg.attrib["ana"])
@@ -370,6 +379,7 @@ if __name__ == "__main__":
 	parser.add_argument("-n", "--notablehead", action="store_const", const=True, default=False, help="Exclude table head from csv.")
 	# create a cl argument entry for every feature
 	group = parser.add_argument_group("Features")
+	group.add_argument("-a", "--all_features", action="store_const", const=True, default=False, help="Extract all avaliable features.")
 	for f in func_list:
 		group.add_argument("--"+f.__name__, action="store_const", const=True, default=False, help=f.__doc__)
 	args = parser.parse_args()
@@ -387,10 +397,10 @@ if __name__ == "__main__":
 		ListOfPersonenreden = extract_blocks(anno)
 		# iterate over the annotated Blocks
 		for personenrede in ListOfPersonenreden:
-			retVal = ["'"+personenrede.text+"'"]
+			retVal = ['"'+personenrede.text+'"']
 			# extract all the wished features
 			for func in func_list:
-				if eval("args." + func.__name__):
+				if eval("args." + func.__name__) or args.all_features:
 					retVal.append(func(personenrede.text, personenrede.tags))
 			# complete the data and append it to the data collection
 			retVal.append(personenrede.properties["narrative"])
