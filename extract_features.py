@@ -327,6 +327,7 @@ def extract_blocks(cat) -> list:
 def contains_neper_local(text, tags):
 	pass
 
+
 if __name__ == "__main__":
 	"""Preparation"""
 	# imports all the extraction functions from named modules

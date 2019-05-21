@@ -1,11 +1,6 @@
 #!/usr/bin/python3
 
 
-def example_p(text, tags):
-	"""Beispielfunktion von Pasch"""
-	return "Beispiel P"
-
-
 def verb_proportion(text, tags):
 	"""Anteil der Verben"""
 	verb_count = 0
@@ -17,6 +12,11 @@ def verb_proportion(text, tags):
 	result = verb_count/ total
 		
 	return result 
+
+def contains_neper_global(text, tags):
+	"""Überprüft ob ein irgendein Personenname im Text vorkommt"""
+	pass
+
 
 
 if __name__ == "__main__":
