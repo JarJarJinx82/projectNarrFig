@@ -10,9 +10,7 @@ def verb_proportion(text, tags):
 		if tag["pos"][0] == "V":
 			verb_count += 1
 	
-	result = verb_count/ total
-		
-	return result 
+	return verb_count / total
 
 
 with open("data/names.txt") as inf:
@@ -24,7 +22,7 @@ def contains_neper_global(text, tags):
 	global firsts, lasts
 	for word, tag in tags:
 		if tag["pos"] == "N":
-			if tag["attributes"]["type"] == "Name" and word.upper() in names:
+			if word.upper() in names:
 				return True
 	return False
 

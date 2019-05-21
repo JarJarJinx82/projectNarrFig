@@ -5,6 +5,7 @@ import csv
 from inspect import getmembers, isfunction
 from catma import Catma
 from RFTagParser import RFTagger
+import sys
 
 
 """Class for all the Blocks to contain the plain Text and
@@ -115,7 +116,7 @@ def contains_neper_local(text, tags):
 	global anno
 	for word, tag in tags:
 		if tag["pos"] == "N":
-			if tag["attributes"]["type"] == "Name" and word.lower() in anno.dp:
+			if word.lower() in anno.dp:
 				return True
 	return False
 
@@ -158,13 +159,16 @@ if __name__ == "__main__":
 		outData[0] += ["Narrativer_Anteil", "falsifiziert"]
 
 	# iterate over the different files
-	for inf in args.files:
+	for i, inf in enumerate(args.files):
+		print(f"\nWorking on file #{i+1}/{len(args.files)}\n{inf}\n", file=sys.stderr)
 		# get the annotation
 		anno = Catma(inf)
 		# get the Blocks from the annotation
+		print("RFTagger working, this may need a moment.")
 		ListOfPersonenreden = extract_blocks(anno)
 		# iterate over the annotated Blocks
-		for personenrede in ListOfPersonenreden:
+		for j, personenrede in enumerate(ListOfPersonenreden):
+			sys.stderr.write(f"\rProcessing personenrede #{j+1}/{len(ListOfPersonenreden)}")
 			retVal = ['"'+personenrede.text+'"']
 			# extract all the wished features
 			for func in func_list:
@@ -176,9 +180,12 @@ if __name__ == "__main__":
 			retVal.append(personenrede.properties["narrative"])
 			retVal.append(personenrede.properties["falsified"])
 			outData.append(retVal)
+		sys.stderr.flush()
+		print("\n", file=sys.stderr)
 
 
 	"""outputting results to file"""
+	print("Writing Results to file.", file=sys.stderr)
 	# creating a timestamp
 	ts = time.strftime("%Y%m%d-%H%M")
 	ofName = f"features_{ts}.csv"
@@ -186,3 +193,4 @@ if __name__ == "__main__":
 	with open(ofName, "w") as of:
 		writer = csv.writer(of)
 		writer.writerows(outData)
+	print("Done.", file=sys.stderr)
