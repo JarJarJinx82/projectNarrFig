@@ -23,6 +23,14 @@ class Catma:
 		self.idDict = self.create_idDict()
 		self.dp = self.getDP()
 
+		""" postagging here
+		self.text = self.extract_text()
+		rf = RFTagger(self.text)
+		self.total_tags = rf.tags
+	
+	def extract_text(self):
+		pass"""
+
 	# parse Dramatis Personae
 	def getDP(self):
 		text = self.root.find(f".//{self.tei}body/{self.tei}ab").text
@@ -93,9 +101,10 @@ class Catma:
 				return self.getBaseTypeHelper(self.typeDict[typeID]["baseType"])
 
 class RFTagger:
-	def __init__(self, text):
+	def __init__(self, text, ignore_segmentation=True):
 		self.text = text
 		self.tags = []
+		self.listOfTags = []
 		# use RFTagger to pos-tag the text
 		os.chdir("RFTagger")
 		with open("tmp.txt", "w") as tmp:
@@ -108,6 +117,11 @@ class RFTagger:
 		for row in csv.reader(rows, delimiter="\t"):
 			if len(row) == 0:
 				continue
+			if not ignore_segmentation and row[0] == "STOPHERE":
+				self.listOfTags.append(self.tags)
+				self.tags = []
+				continue
+
 			# creating the dictionary and adding the easy ones
 			tmpDict = {}
 			tmpDict["lemma"] = row[2]
@@ -245,8 +259,11 @@ class Block:
 		self.sprecher = sprecher
 		self.text = self.extractText()
 		self.properties = self.extractProps()
+		self.tags = []
+
+		"""postagging here
 		rf = RFTagger(self.text)
-		self.tags = rf.tags
+		self.tags = rf.tags"""
 
 
 	# get the plain Text content of the part
@@ -320,6 +337,16 @@ def extract_blocks(cat) -> list:
 					sprecher = seg.text
 				continue
 
+	totalText = ""
+	for figurenrede in listOfBlocks:
+		totalText += figurenrede.text + "\nSTOPHERE\n"
+
+	rf = RFTagger(totalText, ignore_segmentation=False)
+	listOfTags = rf.listOfTags
+
+	for block, tags in zip(listOfBlocks, listOfTags):
+		block.tags = tags
+
 	return listOfBlocks
 
 
@@ -350,7 +377,7 @@ if __name__ == "__main__":
 	"""extracting all the features"""
 	outData = []
 	if not args.notablehead:
-		outData.append(["Personenrede", *[f.__name__ for f in func_list], "Narrativer_Anteil", "falsifiziert"])
+		outData.append(["Personenrede", *[f.__name__ for f in func_list if eval("args."+f.__name__)], "Narrativer_Anteil", "falsifiziert"])
 
 	# iterate over the different files
 	for inf in args.files:
