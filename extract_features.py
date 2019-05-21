@@ -111,14 +111,28 @@ def extract_blocks(cat) -> list:
 
 """Special functions, that can't be in other file"""
 def contains_neper_local(text, tags):
-	pass
+	"""True if someone from the Dramatis Personae is mentioned"""
+	global anno
+	for word, tag in tags:
+		if tag["pos"] == "N":
+			if tag["attributes"]["type"] == "Name" and word.lower() in anno.dp:
+				return True
+	return False
+
+def contains_selfref(block):
+	"""True if speaker is mentioned."""
+	global anno
+	if block.sprecher in anno.dp:
+		return True
+	else:
+		return False
 
 
 if __name__ == "__main__":
 	"""Preparation"""
 	# imports all the extraction functions from named modules
 	my_imports = ["features_m", "features_j", "features_p"]
-	func_list = []
+	func_list = [contains_neper_local]
 	for imp in my_imports:
 		mod = __import__(imp)
 		func_list += [o[1] for o in getmembers(mod) if isfunction(o[1])]
@@ -128,16 +142,20 @@ if __name__ == "__main__":
 	parser.add_argument("files", type=str, nargs="+", help="Filenames of the annotations.")
 	parser.add_argument("-n", "--notablehead", action="store_const", const=True, default=False, help="Exclude table head from csv.")
 	# create a cl argument entry for every feature
-	group = parser.add_argument_group("Features")
+	group = parser.add_argument_group("features")
 	group.add_argument("-a", "--all_features", action="store_const", const=True, default=False, help="Extract all avaliable features.")
 	for f in func_list:
 		group.add_argument("--"+f.__name__, action="store_const", const=True, default=False, help=f.__doc__)
+	group.add_argument("--contains_selfref", action="store_const", const=True, default=False, help=contains_selfref.__doc__)
 	args = parser.parse_args()
 
 	"""extracting all the features"""
 	outData = []
 	if not args.notablehead:
-		outData.append(["Personenrede", *[f.__name__ for f in func_list if (eval("args."+f.__name__) or args.all_features)], "Narrativer_Anteil", "falsifiziert"])
+		outData.append(["Personenrede", *[f.__name__ for f in func_list if (eval("args."+f.__name__) or args.all_features)]])
+		if args.contains_selfref or args.all_features:
+			outData[0].append("contains_selfref")
+		outData[0] += ["Narrativer_Anteil", "falsifiziert"]
 
 	# iterate over the different files
 	for inf in args.files:
@@ -152,6 +170,8 @@ if __name__ == "__main__":
 			for func in func_list:
 				if eval("args." + func.__name__) or args.all_features:
 					retVal.append(func(personenrede.text, personenrede.tags))
+			if args.contains_selfref or args.all_features:
+				retVal.append(contains_selfref(personenrede))
 			# complete the data and append it to the data collection
 			retVal.append(personenrede.properties["narrative"])
 			retVal.append(personenrede.properties["falsified"])

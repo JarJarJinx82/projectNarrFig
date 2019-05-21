@@ -31,6 +31,7 @@ class Catma:
         text = self.root.find(f".//{self.tei}body/{self.tei}ab").text
         personen = re.search("Personen Personen. (.*) 1.", text)
         personen = word_tokenize(personen.group(1))
+        personen = [p.lower() for p in personen if p.isalpha()]
         return personen
 
     # function to make types easily lookupable

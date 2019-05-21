@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from typing import List
 
 
 def verb_proportion(text, tags):
@@ -13,9 +14,19 @@ def verb_proportion(text, tags):
 		
 	return result 
 
+
+with open("data/names.txt") as inf:
+	names = inf.read().split("\n")
+
+
 def contains_neper_global(text, tags):
 	"""Überprüft ob ein irgendein Personenname im Text vorkommt"""
-	pass
+	global firsts, lasts
+	for word, tag in tags:
+		if tag["pos"] == "N":
+			if tag["attributes"]["type"] == "Name" and word.upper() in names:
+				return True
+	return False
 
 
 
