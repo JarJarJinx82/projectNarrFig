@@ -129,16 +129,19 @@ def contains_selfref(block):
 		return False
 
 
+
 if __name__ == "__main__":
 	"""Preparation"""
 	# imports all the extraction functions from named modules
 	my_imports = ["features_m", "features_j", "features_p"]
-	func_list = [contains_neper_local]
+	func_list = [(contains_neper_local, None), (contains_selfref, "block")]
 	for imp in my_imports:
 		mod = __import__(imp)
-		func_list += [o[1] for o in getmembers(mod) if isfunction(o[1])]
+		func_list += [(o[1], None) for o in getmembers(mod) if isfunction(o[1])]
+	func_list.sort(key=lambda x: x[0].__name__)
 
 	# command line ui, including parsing of wished features
+	from operator import attrgetter
 	parser = argparse.ArgumentParser(description="Extract features from Catma annotated Files")
 	parser.add_argument("files", type=str, nargs="+", help="Filenames of the annotations.")
 	parser.add_argument("-n", "--notablehead", action="store_const", const=True, default=False, help="Exclude table head from csv.")
@@ -146,17 +149,17 @@ if __name__ == "__main__":
 	group = parser.add_argument_group("features")
 	group.add_argument("-a", "--all_features", action="store_const", const=True, default=False, help="Extract all avaliable features.")
 	for f in func_list:
-		group.add_argument("--"+f.__name__, action="store_const", const=True, default=False, help=f.__doc__)
-	group.add_argument("--contains_selfref", action="store_const", const=True, default=False, help=contains_selfref.__doc__)
+		group.add_argument("--"+f[0].__name__, action="store_const", const=True, default=False, help=f[0].__doc__)
 	args = parser.parse_args()
 
 	"""extracting all the features"""
 	outData = []
 	if not args.notablehead:
-		outData.append(["Personenrede", *[f.__name__ for f in func_list if (eval("args."+f.__name__) or args.all_features)]])
+		outData.append(["Personenrede", *[f[0].__name__ for f in func_list if (eval("args."+f[0].__name__) or args.all_features)]])
 		if args.contains_selfref or args.all_features:
 			outData[0].append("contains_selfref")
 		outData[0] += ["Narrativer_Anteil", "falsifiziert"]
+
 
 	# iterate over the different files
 	for i, inf in enumerate(args.files):
@@ -166,16 +169,20 @@ if __name__ == "__main__":
 		# get the Blocks from the annotation
 		print("RFTagger working, this may need a moment.")
 		ListOfPersonenreden = extract_blocks(anno)
+
 		# iterate over the annotated Blocks
 		for j, personenrede in enumerate(ListOfPersonenreden):
 			sys.stderr.write(f"\rProcessing personenrede #{j+1}/{len(ListOfPersonenreden)}")
 			retVal = ['"'+personenrede.text+'"']
 			# extract all the wished features
 			for func in func_list:
-				if eval("args." + func.__name__) or args.all_features:
-					retVal.append(func(personenrede.text, personenrede.tags))
-			if args.contains_selfref or args.all_features:
-				retVal.append(contains_selfref(personenrede))
+				if eval("args." + func[0].__name__) or args.all_features:
+					if func[1] == "block":
+						retVal.append(func[0](personenrede))
+					else:
+						retVal.append(func[0](personenrede.text, personenrede.tags))
+
+
 			# complete the data and append it to the data collection
 			retVal.append(personenrede.properties["narrative"])
 			retVal.append(personenrede.properties["falsified"])
