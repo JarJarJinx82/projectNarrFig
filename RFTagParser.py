@@ -26,24 +26,29 @@ class RFTagger:
 
 			# creating the dictionary and adding the easy ones
 			tmpDict = {}
-			tmpDict["rftag"] = row[1]
-			tmpDict["lemma"] = row[2]
-			tmpTags = row[1].split(".")
-			tmpDict["pos"] = pos = tmpTags[0]
-			# getting the more complicated ones with the helper functinos
-			helperfunc = eval("self.pos_" + pos)  # dirty trick to call function
-			try:
-				attribs = helperfunc(tmpTags[1:])
-			except IndexError:
-				if len(tmpTags[1:]) == 0:
-					attribs = None
-				else:
-					attribs = {}
-					for i, elem in enumerate(tmpTags[1:]):
-						attribs[i] = elem
-				print("Warning: POS-tag incomplete: " + row[0] + "\n\t-> " + tmpDict["rftag"] + "\n\t->", attribs, file=sys.stderr)
-			tmpDict["attributes"] = attribs
-			self.tags.append((row[0], tmpDict))
+			if len(row) == 0:
+				continue
+			elif len(row) == 1:
+				self.tags.append((row[0], {}))
+			else:
+				tmpDict["rftag"] = row[1]
+				tmpDict["lemma"] = row[2]
+				tmpTags = row[1].split(".")
+				tmpDict["pos"] = pos = tmpTags[0]
+				# getting the more complicated ones with the helper functinos
+				helperfunc = eval("self.pos_" + pos)  # dirty trick to call function
+				try:
+					attribs = helperfunc(tmpTags[1:])
+				except IndexError:
+					if len(tmpTags[1:]) == 0:
+						attribs = None
+					else:
+						attribs = {}
+						for i, elem in enumerate(tmpTags[1:]):
+							attribs[i] = elem
+					print("Warning: POS-tag incomplete: " + row[0] + "\n\t-> " + tmpDict["rftag"] + "\n\t->", attribs, file=sys.stderr)
+				tmpDict["attributes"] = attribs
+				self.tags.append((row[0], tmpDict))
 
 	# helper methods for pos-tag-parsing
 	def pos_kng(self, tags):

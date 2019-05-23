@@ -6,6 +6,7 @@ from inspect import getmembers, isfunction
 from catma import Catma
 from RFTagParser import RFTagger
 import sys
+import pickle
 
 """Class for all the Blocks to contain the plain Text and
 its annotations"""
@@ -77,7 +78,7 @@ def extract_blocks(cat) -> list:
         # print(f"\nSegment #{i+1} of {len(segments)}", file=sys.stderr)
         baseType = cat.getBaseType(seg.attrib["ana"])
         isFigurenrede = baseType == "Figurenrede"
-        isSprecher = "Sprecherfigur" in cat.getType(seg.attrib["ana"])
+        isSprecher = "Sprecherfigur" == cat.getType(seg.attrib["ana"])[0]["type"]
         if inBlock:
             if isFigurenrede:  # inside of block
                 tmp.append(seg)
@@ -96,6 +97,7 @@ def extract_blocks(cat) -> list:
                     sprecher = seg.text
                 continue
 
+    # getting all the tags
     totalText = ""
     for figurenrede in listOfBlocks:
         totalText += figurenrede.text + "\nSTOPHERE\n"
@@ -176,11 +178,13 @@ def variance_from_mean_speech_proportion(block):
 
 def first_appearance(block):
     """Der erste Auftritt der Figur (0=als erstes, 1=als letztes)"""
+    if block.sprecher == None:
+        return None
     varName = "first_appearance-" + block.sprecher
     if varName not in globals():
         global ListOfPersonenreden
         total = len(ListOfPersonenreden) -1
-        for i, rede in ListOfPersonenreden:
+        for i, rede in enumerate(ListOfPersonenreden):
             if rede.sprecher == block.sprecher:
                 res = globals()[varName] = i/total
                 return res
@@ -190,11 +194,13 @@ def first_appearance(block):
 
 def last_appearance(block):
     """Der letzte Auftritt der Figur (0=als erstes, 1=als letztes)"""
+    if block.sprecher == None:
+        return None
     varName = "last_appearance-" + block.sprecher
     if varName not in globals():
         global ListOfPersonenreden
         total = len(ListOfPersonenreden) -1
-        for i, rede in reversed(ListOfPersonenreden):
+        for i, rede in enumerate(reversed(ListOfPersonenreden)):
             if rede.sprecher == block.sprecher:
                 res = globals()[varName] = (total-i) /total
                 return res
@@ -219,6 +225,9 @@ if __name__ == "__main__":
     parser.add_argument("files", type=str, nargs="+", help="Filenames of the annotations.")
     parser.add_argument("-n", "--notablehead", action="store_const", const=True, default=False,
                         help="Exclude table head from csv.")
+    megroup = parser.add_mutually_exclusive_group()
+    megroup.add_argument("-j", "--just_prepare", action="store_const", const=True, default=False, help="Dont extract any feature, just take the text, devide it and get POS-Tags.")
+    megroup.add_argument("-i", "--input_preprepared", action="store_const", const=True, default=False, help="Dont use XML as input, but pre-prepared binary.")
     # create a cl argument entry for every feature
     group = parser.add_argument_group("features")
     group.add_argument("-a", "--all_features", action="store_const", const=True, default=False,
@@ -228,49 +237,77 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     """extracting all the features"""
-    outData = []
-    if not args.notablehead:
-        outData.append(["Personenrede",
-                        *[f[0].__name__ for f in func_list if (eval("args." + f[0].__name__) or args.all_features)]])
-        if args.contains_selfref or args.all_features:
-            outData[0].append("contains_selfref")
-        outData[0] += ["Narrativer_Anteil", "falsifiziert"]
+
+    if not args.just_prepare:  # preparing Tablehead if output of results is wished
+        outData = []
+        if not args.notablehead:
+            outData.append(["Personenrede",
+                            *[f[0].__name__ for f in func_list if (eval("args." + f[0].__name__) or args.all_features)]])
+            outData[0] += ["Narrativer_Anteil", "falsifiziert"]
+    else:  # prepare pickle output of prepared files
+        ts = time.strftime("%Y%m%d-%H%M")
+        pickle_file = f"d{len(args.files)}_{ts}.prep"
+
+    if args.input_preprepared:  # take the prepared tuples from the pickle as input
+        dramen = []
+        with open(args.files[0], "rb") as inf:
+            while True:
+                try:
+                    dramen.append(pickle.load(inf))
+                except EOFError:
+                    break
+    else:  # tage the named files as input
+        dramen = args.files
+
 
     # iterate over the different files
-    for i, inf in enumerate(args.files):
-        print(f"\nWorking on file #{i + 1}/{len(args.files)}\n{inf}\n", file=sys.stderr)
-        # get the annotation
-        anno = Catma(inf)
-        # get the Blocks from the annotation
-        print("RFTagger working, this may need a moment.")
-        ListOfPersonenreden = extract_blocks(anno)
+    for i, inf in enumerate(dramen):  # iterate over one of the to lists with all the dramen
 
-        # iterate over the annotated Blocks
-        for j, personenrede in enumerate(ListOfPersonenreden):
-            sys.stderr.write(f"\rProcessing personenrede #{j + 1}/{len(ListOfPersonenreden)}")
-            retVal = ['"' + personenrede.text + '"']
-            # extract all the wished features
-            for func in func_list:
-                if eval("args." + func[0].__name__) or args.all_features:
-                    if func[1] == "block":
-                        retVal.append(func[0](personenrede))
-                    else:
-                        retVal.append(func[0](personenrede.text, personenrede.tags))
+        if not args.input_preprepared:  # if iterating over files
+            print(f"\nWorking on file #{i + 1}/{len(args.files)}\n{inf}\n", file=sys.stderr)
+            # get the annotation
+            anno = Catma(inf)
+            # get the Blocks from the annotation
+            print("RFTagger working, this may need a moment.")
+            ListOfPersonenreden = extract_blocks(anno)
 
-            # complete the data and append it to the data collection
-            retVal.append(personenrede.properties["narrative"])
-            retVal.append(personenrede.properties["falsified"])
-            outData.append(retVal)
-        sys.stderr.flush()
-        print("\n", file=sys.stderr)
+        else:  # if iterating over prepared pickle stuff
+            anno, ListOfPersonenreden = inf
 
-    """outputting results to file"""
-    print("Writing Results to file.", file=sys.stderr)
-    # creating a timestamp
-    ts = time.strftime("%Y%m%d-%H%M")
-    ofName = f"features_{ts}.csv"
-    # write the list of lists as a csv
-    with open(ofName, "w") as of:
-        writer = csv.writer(of)
-        writer.writerows(outData)
-    print("Done.", file=sys.stderr)
+
+        if args.just_prepare:  # save tagged and prepared blocks and annotation to pickle file
+            with open(pickle_file, "wb") as ouf:
+                pickle.dump((anno, ListOfPersonenreden), ouf)
+
+
+        else:  # extracing features, if not in just-prepare-mode
+            # iterate over the annotated Blocks
+            for j, personenrede in enumerate(ListOfPersonenreden):
+                sys.stderr.write(f"\rProcessing personenrede #{j + 1}/{len(ListOfPersonenreden)}")
+                retVal = ['"' + personenrede.text + '"']
+                # extract all the wished features
+                for func in func_list:
+                    if eval("args." + func[0].__name__) or args.all_features:
+                        if func[1] == "block":
+                            retVal.append(func[0](personenrede))
+                        else:
+                            retVal.append(func[0](personenrede.text, personenrede.tags))
+
+                # complete the data and append it to the data collection
+                retVal.append(personenrede.properties["narrative"])
+                retVal.append(personenrede.properties["falsified"])
+                outData.append(retVal)
+            sys.stderr.flush()
+            print("\n", file=sys.stderr)
+
+    if not args.just_prepare:
+        """outputting results to file"""
+        print("Writing Results to file.", file=sys.stderr)
+        # creating a timestamp
+        ts = time.strftime("%Y%m%d-%H%M")
+        ofName = f"features_{ts}.csv"
+        # write the list of lists as a csv
+        with open(ofName, "w") as of:
+            writer = csv.writer(of)
+            writer.writerows(outData)
+        print("Done.", file=sys.stderr)

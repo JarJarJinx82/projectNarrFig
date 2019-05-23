@@ -31,7 +31,6 @@ def past_proportion(text, tags, counts=None):
             if v == "Pres":
                 counts["pres"] += 1
         print(counts)
-
     return counts["pres"] / counts["all"]
 
 
