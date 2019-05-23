@@ -7,11 +7,11 @@ from catma import Catma
 from RFTagParser import RFTagger
 import sys
 import pickle
+import statistics
+
 
 """Class for all the Blocks to contain the plain Text and
 its annotations"""
-
-
 class Block:
     """principal methods"""
 
@@ -78,11 +78,18 @@ def extract_blocks(cat) -> list:
         # print(f"\nSegment #{i+1} of {len(segments)}", file=sys.stderr)
         baseType = cat.getBaseType(seg.attrib["ana"])
         isFigurenrede = baseType == "Figurenrede"
-        isSprecher = "Sprecherfigur" == cat.getType(seg.attrib["ana"])[0]["type"]
+        types = cat.getType(seg.attrib["ana"])
+        isSprecher = False
+        for elem in types:
+            if elem["type"] == "Sprecherfigur":
+                isSprecher = True
+
+        #isSprecher = "Sprecherfigur" == cat.getType(seg.attrib["ana"])[1]["type"]
         if inBlock:
             if isFigurenrede:  # inside of block
                 tmp.append(seg)
             else:  # end of Block
+                #print(sprecher)
                 temp_block = Block(tmp, sprecher)
                 listOfBlocks.append(temp_block)
                 tmp = []
@@ -92,10 +99,9 @@ def extract_blocks(cat) -> list:
             if isFigurenrede:  # start of block
                 inBlock = True
                 tmp.append(seg)
-            else:  # outside of block
-                if isSprecher:
-                    sprecher = seg.text
-                continue
+        if isSprecher:
+            sprecher = seg.text.strip().replace(".", "")
+
 
     # getting all the tags
     totalText = ""
@@ -135,7 +141,7 @@ def contains_selfref(block):
 
 def total_speech_proportion(block):
     """Redeanteil dieser Person generell"""
-    varName = "speech_prp-" + block.sprecher
+    varName = "speech_prp_" + block.sprecher
     if varName not in globals():
         global ListOfPersonenreden
         total = len(ListOfPersonenreden)
@@ -153,7 +159,7 @@ def total_speech_proportion(block):
 
 def variance_from_mean_speech_proportion(block):
     """Redeanteil dieser Person - Mittelwert aller Redeanteile"""
-    varName = "speech_prp-" + block.sprecher
+    varName = "speech_prp_" + block.sprecher
     global ListOfPersonenreden
     total = len(ListOfPersonenreden)
 
@@ -168,7 +174,7 @@ def variance_from_mean_speech_proportion(block):
 
     varNameMean = "mean_speech_prop"
     if varNameMean not in globals():
-        sprecherCount = sum(set([b.sprecher for b in ListOfPersonenreden]))
+        sprecherCount = len(set([b.sprecher for b in ListOfPersonenreden]))
         mean = globals()[varNameMean] = total / sprecherCount
     else:
         mean = globals()[varNameMean]
@@ -177,10 +183,10 @@ def variance_from_mean_speech_proportion(block):
 
 
 def first_appearance(block):
-    """Der erste Auftritt der Figur (0=als erstes, 1=als letztes)"""
+    """Der erste Auftritt der Figur (0=am Anfang, 1=am Ende)"""
     if block.sprecher == None:
         return None
-    varName = "first_appearance-" + block.sprecher
+    varName = "first_appearance_" + block.sprecher
     if varName not in globals():
         global ListOfPersonenreden
         total = len(ListOfPersonenreden) -1
@@ -193,10 +199,10 @@ def first_appearance(block):
 
 
 def last_appearance(block):
-    """Der letzte Auftritt der Figur (0=als erstes, 1=als letztes)"""
+    """Der letzte Auftritt der Figur (0=am Anfang, 1=am Ende)"""
     if block.sprecher == None:
         return None
-    varName = "last_appearance-" + block.sprecher
+    varName = "last_appearance_" + block.sprecher
     if varName not in globals():
         global ListOfPersonenreden
         total = len(ListOfPersonenreden) -1
@@ -208,11 +214,52 @@ def last_appearance(block):
         return globals()[varName]
 
 
+def variance_from_median_length_total(text, tags):
+    """Varianz vom Median aller Längen, normalisiert an der Gesamtlängt"""
+    length = len(tags)
+    if "all_lengths" in globals():
+        global all_lengths
+    else:
+        global ListOfPersonenreden
+        all_lengths = [len(block.tags) for block in ListOfPersonenreden]
+
+    total_length = sum(all_lengths)
+    median_length = statistics.median(all_lengths)
+    return (length-median_length)/total_length
+
+
+def variance_from_median_length_sd(text, tags):
+    """Varianz vom Median aller Längen, normalisiert an der Gesamtlängt"""
+    length = len(tags)
+    if "all_lengths" in globals():
+        global all_lengths
+    else:
+        global ListOfPersonenreden
+        all_lengths = [len(block.tags) for block in ListOfPersonenreden]
+
+    sd = statistics.stdev(all_lengths)
+    median_length = statistics.median(all_lengths)
+
+    return (length-median_length)/sd
+
+
+def mean_speech_length_of_speaker(block):
+    """Mittelwert der Längen aller Reden dieser Figur."""
+    sp = block.sprecher
+    varName = "mean_speech_length_"+sp
+    if varName in globals():
+        return globals()[varName]
+    else:
+        global ListOfPersonenreden
+        all_lengths = [len(b.tags) for b in ListOfPersonenreden if b.sprecher == sp]
+        return statistics.mean(all_lengths)
+
+
 if __name__ == "__main__":
     """Preparation"""
     # imports all the extraction functions from named modules
     my_imports = ["features_m", "features_j", "features_p"]
-    func_list = [(last_appearance, "block"), (first_appearance, "block"), (variance_from_mean_speech_proportion, "block"), (total_speech_proportion, "block"), (contains_neper_local, None), (contains_selfref, "block")]
+    func_list = [(mean_speech_length_of_speaker, "block"), (variance_from_median_length_total, None), (variance_from_median_length_sd, None), (last_appearance, "block"), (first_appearance, "block"), (variance_from_mean_speech_proportion, "block"), (total_speech_proportion, "block"), (contains_neper_local, None), (contains_selfref, "block")]
     for imp in my_imports:
         mod = __import__(imp)
         func_list += [(o[1], None) for o in getmembers(mod) if isfunction(o[1])]

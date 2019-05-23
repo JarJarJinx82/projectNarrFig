@@ -11,27 +11,25 @@ chrono_list = ["also","anfangs","anno","bald","beizeiten","bekanntlich","bereits
 
 
 def chronologically_structured(text, tags):
-        for word in tags.keys():
-                for element in chrono_list:
-                        if word == element: 
-                               return True
+        for word, tag in tags:
+                if word in chrono_list:
+                    return True
         return False
 
 
-def past_proportion(text, tags, counts=None):
-    if counts is None:
-        counts = dict(all=0, pres=0)
-
-    for k,v in tags.items():
-
-        if isinstance(v, dict):
-            past_proportion(text,tags,counts)
-        elif k == "tense":
-            counts["all"] += 1
-            if v == "Pres":
-                counts["pres"] += 1
-        print(counts)
-    return counts["pres"] / counts["all"]
+#def past_proportion(text, tags, counts=None):
+#    if counts is None:
+#        counts = dict(all=0, pres=0)
+#
+#    for k,v in tags.items():
+#        if isinstance(v, dict):
+#            past_proportion(text,tags,counts)
+#        elif k == "tense":
+#            counts["all"] += 1
+#            if v == "Pres":
+#                counts["pres"] += 1
+#        print(counts)
+#    return counts["pres"] / counts["all"]
 
 
 

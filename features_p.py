@@ -19,7 +19,7 @@ with open("data/names.txt") as inf:
 
 def contains_neper_global(text, tags):
 	"""Überprüft ob ein irgendein Personenname im Text vorkommt"""
-	global firsts, lasts
+	global names
 	for word, tag in tags:
 		if tag["pos"] == "N":
 			if word.upper() in names:
