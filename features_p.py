@@ -22,7 +22,7 @@ def contains_neper_global(text, tags):
 	global names
 	for word, tag in tags:
 		if tag["pos"] == "N":
-			if word.upper() in names or tag["type"] == "Name":
+			if word.upper() in names or ("type" in tag and tag["type"] == "Name"):
 				return True
 	return False
 
