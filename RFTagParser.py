@@ -29,17 +29,18 @@ class RFTagger:
 			if len(row) == 0:
 				continue
 			elif len(row) == 1:
-				self.tags.append((row[0], {}))
+				self.tags.append((row[0], {"pos":"unknown"}))
 			else:
 				tmpDict["rftag"] = row[1]
 				tmpDict["lemma"] = row[2]
 				tmpTags = row[1].split(".")
 				tmpDict["pos"] = pos = tmpTags[0]
-				# getting the more complicated ones with the helper functinos
+				# getting the more complicated ones with the helper functions
 				helperfunc = eval("self.pos_" + pos)  # dirty trick to call function
 				try:
 					attribs = helperfunc(tmpTags[1:])
 				except IndexError:
+
 					if len(tmpTags[1:]) == 0:
 						attribs = None
 					else:
@@ -114,7 +115,7 @@ class RFTagger:
 		return None
 
 	def pos_N(self, tags):
-		retDict = {"type": tags[1]}
+		retDict = {"type": tags[0]}
 		retDict.update(self.pos_kng(tags[1:]))
 		return retDict
 

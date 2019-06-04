@@ -124,7 +124,7 @@ def contains_neper_local(text, tags):
     """True if someone from the Dramatis Personae is mentioned"""
     global anno
     for word, tag in tags:
-        if tag["pos"] == "N":
+        if tag["pos"] == "N" :
             if word.lower() in anno.dp:
                 return True
     return False
@@ -132,9 +132,12 @@ def contains_neper_local(text, tags):
 
 def contains_selfref(block):
     """True if speaker is mentioned."""
-    global anno
-    if block.sprecher in anno.dp:
-        return True
+    sprechers = block.sprecher.split()
+    for word, tag in block.tags:
+        if word in sprechers:
+            return True
+        if tag["pos"] == "PRO" and not tag["attributes"] is None and tag["attributes"]["person"] == "1":
+            return True
     else:
         return False
 
@@ -258,7 +261,7 @@ def mean_speech_length_of_speaker(block):
 if __name__ == "__main__":
     """Preparation"""
     # imports all the extraction functions from named modules
-    my_imports = ["features_m", "features_j", "features_p"]
+    my_imports = ["features_m", "features_p"]
     func_list = [(mean_speech_length_of_speaker, "block"), (variance_from_median_length_total, None), (variance_from_median_length_sd, None), (last_appearance, "block"), (first_appearance, "block"), (variance_from_mean_speech_proportion, "block"), (total_speech_proportion, "block"), (contains_neper_local, None), (contains_selfref, "block")]
     for imp in my_imports:
         mod = __import__(imp)
@@ -331,6 +334,8 @@ if __name__ == "__main__":
             # iterate over the annotated Blocks
             for j, personenrede in enumerate(ListOfPersonenreden):
                 sys.stderr.write(f"\rProcessing personenrede #{j + 1}/{len(ListOfPersonenreden)}")
+                if personenrede.text[-1] == " ":
+                    personenrede.text = personenrede.text[:-1]
                 retVal = ['"' + personenrede.text + '"']
                 # extract all the wished features
                 for func in func_list:

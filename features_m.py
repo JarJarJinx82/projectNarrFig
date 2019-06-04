@@ -13,7 +13,7 @@ chrono_list = ["also", "anfangs", "anno", "bald", "beizeiten", "bekanntlich", "b
                "vorhin", "vormals", "weiter", "weiters", "wodurch", "wogegen", "womit", "wonach", "zeither", "zuerst",
                "zugleich", "zuletzt", "überdies"]
 
-narration_list = ["sagte"]
+narration_list = [r", (sagten?|meinten?) (er|sie)"]
 
 
 # features
@@ -21,8 +21,8 @@ narration_list = ["sagte"]
 # unfertig, muss um die liste und deren inhalt ergänzt werden. was genau soll in dieser liste zu finden sein und WIE? > sagte er als 1 String oder anders?
 def narration_keyphrases(text, tags):
     """compares each word with a wordlist of narration keyphrases, returns BOOL"""
-    for word in tags:
-        if word[0].lower() in chrono_list:
+    for exp in narration_list:
+        if re.search(exp, text):
             return True
     return False
 
@@ -64,13 +64,17 @@ def future_proportion(text, tags):
     future_constructions = 0
     for word, tag in tags:
         if tag["pos"][0] == "V":
-            allverbs += 1
-            if hilfsv_toggle == True and tag["pos"] == "VINF":
+            if tag["pos"] == "VFIN":
+                allverbs += 1
+            elif hilfsv_toggle == True and tag["pos"] == "VINF":
                 future_constructions += 1
                 hilfsv_toggle = False
             elif hilfsv_toggle == True:
                 hilfsv_toggle = False
-            if "type" in tag["attributes"] and tag["attributes"]["type"] == "Aux" and word[0].lower() == "w":
+
+            iswerden = "type" in tag["attributes"] and tag["attributes"]["type"] == "Aux" and word[0].lower() == "w"
+            ispast = "tense" in tag["attributes"] and tag["attributes"]["tense"] == "Past"
+            if iswerden and not ispast:
                 hilfsv_toggle = True
 
     return future_constructions / allverbs if allverbs != 0 else -1
@@ -82,44 +86,26 @@ def contains_future(text, tags):
     partizip2_toggle = False
 
     for word, tag in tags:
-        if hilfsv_toggle == True and partizip2_toggle == False and tag["pos"] == "VINF":  # erfüllt: futur 1
+        if hilfsv_toggle and not partizip2_toggle and tag["pos"] == "VINF":  # erfüllt: futur 1
             return True
-        elif hilfsv_toggle == True and partizip2_toggle == True and tag["pos"] == "VINF" and "type" in tag[
+        elif hilfsv_toggle and partizip2_toggle and tag["pos"] == "VINF" and "type" in tag[
             "attributes"] and tag["attributes"]["type"] == "Aux":  # erfüllt: futur 2
             return True
-        elif hilfsv_toggle == True and partizip2_toggle == False and tag["pos"] == "VPP" and "subtype" in tag[
+        elif hilfsv_toggle and not partizip2_toggle and tag["pos"] == "VPP" and "subtype" in tag[
             "attributes"] and tag["attributes"]["subtype"] == "Psp":
             partizip_toggle = True
         elif not tag["attributes"] is None and "type" in tag["attributes"] and tag["attributes"]["type"] == "Aux" and word[0].lower() == "w":
             hilfsv_toggle = True
-        else:
+        elif word == ".":
             hilfsv_toggle = False
             partizip2_toggle = False
     return False
+    return contains_future(text, tags) or contains_past(text, tags)
 
 
 def contains_non_present(text, tags):
     """combines contains_futur/past, returns BOOL"""
-    hilfsv_toggle = False
-    partizip2_toggle = False
-
-    for word, tag in tags:
-        if hilfsv_toggle == True and partizip2_toggle == False and tag["pos"] == "VINF":  # erfüllt: futur 1
-            return True
-        elif hilfsv_toggle == True and partizip2_toggle == True and tag["pos"] == "VINF" and "type" in tag[
-            "attributes"] and tag["attributes"]["type"] == "Aux":  # erfüllt: futur 2
-            return True
-        elif hilfsv_toggle == True and partizip2_toggle == False and tag["pos"] == "VPP" and "subtype" in tag[
-            "attributes"] and tag["attributes"]["subtype"] == "Psp":
-            partizip_toggle = True
-        elif not tag["attributes"] is None and "type" in tag["attributes"] and tag["attributes"]["type"] == "Aux" and word[0].lower() == "w":
-            hilfsv_toggle = True
-        else:
-            hilfsv_toggle = False
-            partizip2_toggle = False
-        if tag["pos"][0] == "V" and "tense" in tag["attributes"] and tag["attributes"]["tense"] == "Past":
-            return True
-    return False
+    return contains_future(text, tags) or contains_past(text, tags)
 
 
 # umbenannt nach korr. engl. Bezeichnung
@@ -138,11 +124,10 @@ def subj_proportion(text, tags):
 def contains_thirdpers(text, tags):
     """is searching for verbs and pronouns in 3rd pers.sg., returns BOOL"""
     for word, tag in tags:
-        if tag["pos"][0] == "V" and "person" in tag["attributes"] and tag["attributes"]["person"] == "3" and "number" in \
-                tag["attributes"] and tag["attributes"]["number"] == "Sg":
+        if tag["pos"][0] == "V" and "person" in tag["attributes"] and tag["attributes"]["person"] == "3":
             return True
         elif tag["pos"] == "PRO" and "person" in tag["attributes"] and tag["attributes"][
-            "person"] == "3" and "number" in tag["attributes"] and tag["attributes"]["number"] == "Sg":
+            "person"] == "3":
             return True
     return False
 
@@ -154,15 +139,15 @@ def thirdpers_proportion(text, tags):
     for word, tag in tags:
         if tag["pos"] == "PRO" or tag["pos"][0] == "V":
             allverbpron += 1
-        if (tag["pos"][0] == "V" and "person" in tag["attributes"] and tag["attributes"][
-            "person"] == "3" and "number" in tag["attributes"] and tag["attributes"]["number"] == "Sg") or (
-                tag["pos"] == "PRO" and "person" in tag["attributes"] and tag["attributes"][
-            "person"] == "3" and "number" in tag["attributes"] and tag["attributes"]["number"] == "Sg"):
+
+        verbisthird = tag["pos"][0] == "V" and "Person" in tag["attributes"] and tag["attributes"]["person"] == "3"
+        proisthird = tag["pos"] == "PRO" and "person" in tag["attributes"] and tag["attributes"]["person"] == "3"
+        if verbisthird or proisthird:
             thirdpers += 1
     return thirdpers / allverbpron if allverbpron != 0 else -1
 
 
-def sent_proportion(text, tags):
+def exlamation_proportion(text, tags):
     """counts all "!" and "?", divides them with all tokens, returns FLOAT"""
     allTokens = len(tags)
     punct = 0
@@ -174,9 +159,13 @@ def sent_proportion(text, tags):
 
 def sym_proportion(text, tags):
     """is searching for all special characters and divides them with all tokens, returns FLOAT"""
-    spec_list = re.findall(r"[^a-zA-Z0-9 ]", text)
+    # spec_list = re.findall(r"[^a-zA-Z0-9]", text)
+    symcount = 0
+    for word, tag in tags:
+        if tag["pos"] == "SYM":
+            symcount += 1
 
-    return len(spec_list) / len(tags) if len(tags) != 0 else -1
+    return symcount / len(tags) if len(tags) != 0 else -1
 
 
 def adj_proportion(text, tags):
@@ -193,8 +182,7 @@ def noun_proportion(text, tags):
     noun_counter = 0
     for word, tag in tags:
         if tag["pos"] == "N":
-            if "type" in tag["attributes"] and tag["attributes"]["type"] == "Reg":
-                noun_counter += 1
+            noun_counter += 1
     return noun_counter / len(tags) if len(tags) != 0 else -1
 
 
