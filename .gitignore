@@ -1,4 +1,4 @@
-features_*.csv
+*.csv
 __pycache__
 RFTagger/*
 .idea/*

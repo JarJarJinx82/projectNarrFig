@@ -275,6 +275,8 @@ if __name__ == "__main__":
     parser.add_argument("files", type=str, nargs="+", help="Filenames of the annotations.")
     parser.add_argument("-n", "--notablehead", action="store_const", const=True, default=False,
                         help="Exclude table head from csv.")
+    parser.add_argument("-N", "--notext", action="store_const", const=True, default=False,
+                        help="Exclude Text of Personenrede from csv.")
     megroup = parser.add_mutually_exclusive_group()
     megroup.add_argument("-j", "--just_prepare", action="store_const", const=True, default=False, help="Dont extract any feature, just take the text, devide it and get POS-Tags.")
     megroup.add_argument("-i", "--input_preprepared", action="store_const", const=True, default=False, help="Dont use XML as input, but pre-prepared binary.")
@@ -291,9 +293,12 @@ if __name__ == "__main__":
     if not args.just_prepare:  # preparing Tablehead if output of results is wished
         outData = []
         if not args.notablehead:
-            outData.append(["Personenrede",
-                            *[f[0].__name__ for f in func_list if (eval("args." + f[0].__name__) or args.all_features)]])
-            outData[0] += ["Narrativer_Anteil", "falsifiziert"]
+            tablehead = ["ID"]
+            if not args.notext:
+                tablehead.append("Personenrede")
+            tablehead += [f[0].__name__ for f in func_list if (eval("args." + f[0].__name__) or args.all_features)]
+            tablehead += ["Narrativer_Anteil", "falsifiziert"]
+            outData.append(tablehead)
     else:  # prepare pickle output of prepared files
         ts = time.strftime("%Y%m%d-%H%M")
         pickle_file = f"d{len(args.files)}_{ts}.prep"
@@ -312,6 +317,7 @@ if __name__ == "__main__":
 
     # iterate over the different files
     for i, inf in enumerate(dramen):  # iterate over one of the to lists with all the dramen
+        id = (i+1)*1000
 
         if not args.input_preprepared:  # if iterating over files
             print(f"\nWorking on file #{i + 1}/{len(args.files)}\n{inf}\n", file=sys.stderr)
@@ -334,9 +340,10 @@ if __name__ == "__main__":
             # iterate over the annotated Blocks
             for j, personenrede in enumerate(ListOfPersonenreden):
                 sys.stderr.write(f"\rProcessing personenrede #{j + 1}/{len(ListOfPersonenreden)}")
-                if personenrede.text[-1] == " ":
-                    personenrede.text = personenrede.text[:-1]
-                retVal = ['"' + personenrede.text + '"']
+
+                retVal = [id+j]
+                if not args.notext:
+                    retVal.append('"' + personenrede.text.strip() + '"')
                 # extract all the wished features
                 for func in func_list:
                     if eval("args." + func[0].__name__) or args.all_features:
