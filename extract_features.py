@@ -304,20 +304,21 @@ if __name__ == "__main__":
         pickle_file = f"d{len(args.files)}_{ts}.prep"
 
     if args.input_preprepared:  # take the prepared tuples from the pickle as input
-        dramen = []
+        #dramen = []
         with open(args.files[0], "rb") as inf:
-            while True:
-                try:
-                    dramen.append(pickle.load(inf))
-                except EOFError:
-                    break
+            dramen = pickle.load(inf)
+            #while True:
+            #    try:
+            #        dramen.append(pickle.load(inf))
+            #    except EOFError:
+            #        break
     else:  # tage the named files as input
         dramen = args.files
 
-
+    list_to_pickle = []
     # iterate over the different files
     for i, inf in enumerate(dramen):  # iterate over one of the to lists with all the dramen
-        id = (i+1)*1000
+        id = (i+1)*10000
 
         if not args.input_preprepared:  # if iterating over files
             print(f"\nWorking on file #{i + 1}/{len(args.files)}\n{inf}\n", file=sys.stderr)
@@ -332,8 +333,9 @@ if __name__ == "__main__":
 
 
         if args.just_prepare:  # save tagged and prepared blocks and annotation to pickle file
-            with open(pickle_file, "wb") as ouf:
-                pickle.dump((anno, ListOfPersonenreden), ouf)
+            list_to_pickle.append((anno, ListOfPersonenreden))
+            #with open(pickle_file, "wb") as ouf:
+            #    pickle.dump((anno, ListOfPersonenreden), ouf)
 
 
         else:  # extracing features, if not in just-prepare-mode
@@ -370,3 +372,6 @@ if __name__ == "__main__":
             writer = csv.writer(of)
             writer.writerows(outData)
         print("Done.", file=sys.stderr)
+    else:
+        with open(pickle_file, "wb") as ouf:
+            pickle.dump(list_to_pickle, ouf)
