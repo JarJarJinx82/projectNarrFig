@@ -86,6 +86,10 @@ def contains_future(text, tags):
     partizip2_toggle = False
 
     for word, tag in tags:
+        try:  # give some output to help debugging
+            tag["attributes"]
+        except KeyError:
+            print(word, tag)
         if hilfsv_toggle and not partizip2_toggle and tag["pos"] == "VINF":  # erfüllt: futur 1
             return True
         elif hilfsv_toggle and partizip2_toggle and tag["pos"] == "VINF" and "type" in tag[

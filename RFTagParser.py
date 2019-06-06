@@ -16,7 +16,7 @@ class RFTagger:
 		os.chdir("..")
 		# read the results and parse them into a dict
 		rows = self.rftags.decode().split("\n")
-		for row in csv.reader(rows, delimiter="\t"):
+		for row in csv.reader(rows, delimiter="\t", quoting=csv.QUOTE_NONE):
 			if len(row) == 0:
 				continue
 			if not ignore_segmentation and row[0] == "STOPHERE":
@@ -29,7 +29,7 @@ class RFTagger:
 			if len(row) == 0:
 				continue
 			elif len(row) == 1:
-				self.tags.append((row[0], {"pos":"unknown"}))
+				self.tags.append((row[0], {"pos":"unknown", "attribs":None}))
 			else:
 				tmpDict["rftag"] = row[1]
 				tmpDict["lemma"] = row[2]
