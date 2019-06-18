@@ -194,7 +194,7 @@ def noun_proportion(text, tags):
 def ne_proportion(text, tags):
     """counts all proper names and divides them with all tokens (all nouns could be worth a try), returns FLOAT"""
     ne_counter = 0
-    f 
+    for word, tag in tags:
         if tag["pos"] == "N":
             if "type" in tag["attributes"] and tag["attributes"]["type"] == "Name":
                 ne_counter += 1
@@ -217,6 +217,40 @@ def contains_verbs_location(text, tags):
         if word in liste:
             return True
     return False
+    
+def contains_adj_time(text, tags):
+    """checks if time-related adjective is contained, returns BOOL"""
+    liste = _getlist("adj_time", "./data/adj.Zeit.xml")
+    for word, tag in tags:
+        if word in liste:
+            return True
+    return False
+    
+def contains_noun_event(text, tags):
+    """checks if event-related noun is contained, returns BOOL"""
+    liste = _getlist("noun_event", "./data/nomen.Geschehen.xml")
+    for word, tag in tags:
+        if word in liste:
+            return True
+    return False
+    
+def contains_noun_group(text, tags):
+    """checks if group-related noun is contained, returns BOOL"""
+    liste = _getlist("noun_group", "./data/nomen.Gruppe.xml")
+    for word, tag in tags:
+        if word in liste:
+            return True
+    return False
+    
+def contains_noun_communication(text, tags):
+    """checks if communication-related noun is contained, returns BOOL"""
+    liste = _getlist("noun_communicaion", "./data/nomen.Kommunikation.xml")
+    for word, tag in tags:
+        if word in liste:
+            return True
+    return False
+    
+    
 
 def _getlist(varName, fileName):
     if varName in globals():
