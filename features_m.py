@@ -210,19 +210,25 @@ def pron_proportion(text, tags):
     return pron_counter / len(tags) if len(tags) != 0 else -1
 
 
-def asdf(text, tags):
-    if "foolist" in globals():
-        global foolist
+def contains_verbs_location(text, tags):
+    """checks if location-related verb is contained, returns BOOL"""
+    liste = _getlist("verbs_location", "./data/verben.Lokation.xml")
+    for word, tag in tags:
+        if word in liste:
+            return True
+    return False
+
+def _getlist(varName, fileName):
+    if varName in globals():
+        foolist = globals()[varName]
     else:
-        et = ET.parse("./data/bar.xml")
+        et = ET.parse(fileName)
         root = et.getroot()
         elist = root.findall(".//orthForm")
         foolist = [e.text for e in elist]
-        globals()["foolist"] = foolist
-    for word, tag in tags:
-        if word in foolist:
-            return True
-    return False
+        globals()[varName] = foolist
+    return foolist
+
 
 
 

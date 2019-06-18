@@ -272,7 +272,7 @@ if __name__ == "__main__":
     func_list = [(mean_speech_length_of_speaker, "block"), (variance_from_median_length_total, None), (variance_from_median_length_sd, None), (last_appearance, "block"), (first_appearance, "block"), (variance_from_mean_speech_proportion, "block"), (total_speech_proportion, "block"), (contains_neper_local, None), (contains_selfref, "block")]
     for imp in my_imports:
         mod = __import__(imp)
-        func_list += [(o[1], None) for o in getmembers(mod) if isfunction(o[1])]
+        func_list += [(o[1], None) for o in getmembers(mod) if isfunction(o[1]) and o.__name__[0] != "_"]
     func_list.sort(key=lambda x: x[0].__name__)
 
     # command line ui, including parsing of wished features
