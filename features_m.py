@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import re
+import xml.etree.ElementTree as ET
 
 chrono_list = ["also", "anfangs", "anno", "bald", "beizeiten", "bekanntlich", "bereits", "bisher", "bislang", "dadrauf",
                "dadurch", "daher", "damals", "danach", "damit", "dann", "darauf", "daraufhin", "davor", "dazwischen",
@@ -104,7 +105,6 @@ def contains_future(text, tags):
             hilfsv_toggle = False
             partizip2_toggle = False
     return False
-    return contains_future(text, tags) or contains_past(text, tags)
 
 
 def contains_non_present(text, tags):
@@ -151,7 +151,7 @@ def thirdpers_proportion(text, tags):
     return thirdpers / allverbpron if allverbpron != 0 else -1
 
 
-def exlamation_proportion(text, tags):
+def exclamation_proportion(text, tags):
     """counts all "!" and "?", divides them with all tokens, returns FLOAT"""
     allTokens = len(tags)
     punct = 0
@@ -193,7 +193,7 @@ def noun_proportion(text, tags):
 def ne_proportion(text, tags):
     """counts all proper names and divides them with all tokens (all nouns could be worth a try), returns FLOAT"""
     ne_counter = 0
-    for word, tag in tags:
+    f 
         if tag["pos"] == "N":
             if "type" in tag["attributes"] and tag["attributes"]["type"] == "Name":
                 ne_counter += 1
