@@ -252,6 +252,24 @@ def contains_noun_communication(text, tags):
     
     
 
+def contains_nouns_time(text, tags):
+    """checks if time-related noun is contained, returns BOOL"""
+    liste = _getlist("nouns_time", "./data/nomen.Zeit.xml")
+    for word, tag in tags:
+        if word in liste:
+            return True
+    return False
+
+def contains_nouns_location(text, tags):
+    """checks if location-related noun is contained, returns BOOL"""
+    liste = _getlist("nouns_location", "./data/nomen.Ort.xml")
+    for word, tag in tags:
+        if word in liste:
+            return True
+    return False
+
+
+
 def _getlist(varName, fileName):
     if varName in globals():
         foolist = globals()[varName]
