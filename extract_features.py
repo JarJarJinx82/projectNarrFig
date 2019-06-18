@@ -8,6 +8,7 @@ from RFTagParser import RFTagger
 import sys
 import pickle
 import statistics
+import re
 
 
 """Class for all the Blocks to contain the plain Text and
@@ -16,12 +17,13 @@ class Block:
     """principal methods"""
 
     # constructor (runs every time an instance of this class is created)
-    def __init__(self, listOfSegs, sprecher):
+    def __init__(self, listOfSegs, sprecher, title):
         self.segments = listOfSegs
         self.sprecher = sprecher
         self.text = self.extractText()
         self.properties = self.extractProps()
         self.tags = []
+        self.title = title
 
         """postagging here
         rf = RFTagger(self.text)
@@ -72,6 +74,9 @@ def extract_blocks(cat) -> list:
     inBlock = False  # remembers if right now in Block while iterating
     tmp = []  # list of Segments that belong to same Block
     sprecher = None
+    title = cat.root.find(f".//{cat.tei}titleStmt/{cat.tei}title").text
+    title = re.match("Binnenerzählungen_vereinfacht_(.*)", title).group(1)
+
     # iterating over all catma-segments
     segments = cat.root.findall(f".//{cat.tei}seg")
     for i, seg in enumerate(segments):
@@ -90,7 +95,7 @@ def extract_blocks(cat) -> list:
                 tmp.append(seg)
             else:  # end of Block
                 #print(sprecher)
-                temp_block = Block(tmp, sprecher)
+                temp_block = Block(tmp, sprecher, title)
                 listOfBlocks.append(temp_block)
                 tmp = []
                 sprecher = None
@@ -173,12 +178,12 @@ def variance_from_mean_speech_proportion(block):
                 this += 1
         prop = globals()[varName] = this / total
     else:
-        prop =  globals()[varName]
+        prop = globals()[varName]
 
-    varNameMean = "mean_speech_prop"
+    varNameMean = "mean_speech_prop_" + block.title
     if varNameMean not in globals():
         sprecherCount = len(set([b.sprecher for b in ListOfPersonenreden]))
-        mean = globals()[varNameMean] = total / sprecherCount
+        mean = globals()[varNameMean] = (total / sprecherCount) / total
     else:
         mean = globals()[varNameMean]
 
@@ -218,13 +223,14 @@ def last_appearance(block):
 
 
 def variance_from_median_length_total(text, tags):
-    """Varianz vom Median aller Längen, normalisiert an der Gesamtlängt"""
+    """Varianz vom Median aller Längen, normalisiert an der Gesamtlänge"""
+    global ListOfPersonenreden
     length = len(tags)
-    if "all_lengths" in globals():
-        global all_lengths
+    all_lengths_var = "all_lengths_" + ListOfPersonenreden[0].title
+    if all_lengths_var in globals():
+        all_lengths = globals()[all_lengths_var]
     else:
-        global ListOfPersonenreden
-        all_lengths = [len(block.tags) for block in ListOfPersonenreden]
+        all_lengths = globals()[all_lengths_var] = [len(block.tags) for block in ListOfPersonenreden]
 
     total_length = sum(all_lengths)
     median_length = statistics.median(all_lengths)
@@ -232,13 +238,14 @@ def variance_from_median_length_total(text, tags):
 
 
 def variance_from_median_length_sd(text, tags):
-    """Varianz vom Median aller Längen, normalisiert an der Gesamtlängt"""
+    """Varianz vom Median aller Längen, normalisiert an der Standarddeviation"""
+    global ListOfPersonenreden
     length = len(tags)
-    if "all_lengths" in globals():
-        global all_lengths
+    all_lengths_var = "all_lengths_" + ListOfPersonenreden[0].title
+    if all_lengths_var in globals():
+        all_lengths = globals()[all_lengths_var]
     else:
-        global ListOfPersonenreden
-        all_lengths = [len(block.tags) for block in ListOfPersonenreden]
+        all_lengths = globals() [all_lengths_var] = [len(block.tags) for block in ListOfPersonenreden]
 
     sd = statistics.stdev(all_lengths)
     median_length = statistics.median(all_lengths)
