@@ -15,18 +15,8 @@ chrono_list = ["also", "anfangs", "anno", "bald", "beizeiten", "bekanntlich", "b
                "vorhin", "vormals", "weiter", "weiters", "wodurch", "wogegen", "womit", "wonach", "zeither", "zuerst",
                "zugleich", "zuletzt", "überdies"]
 
-narration_list = [r", (sagten?|meinten?) (er|sie)"]
-
 
 # features
-
-# unfertig, muss um die liste und deren inhalt ergänzt werden. was genau soll in dieser liste zu finden sein und WIE? > sagte er als 1 String oder anders?
-def narration_keyphrases(text, tags):
-    """compares each word with a wordlist of narration keyphrases, returns BOOL"""
-    for exp in narration_list:
-        if re.search(exp, text):
-            return True
-    return False
 
 
 def chronologically_structured(text, tags):
@@ -214,7 +204,7 @@ def contains_verbs_location(text, tags):
     """checks if location-related verb is contained, returns BOOL"""
     liste = _getlist("verbs_location", "./data/verben.Lokation.xml")
     for word, tag in tags:
-        if word in liste:
+        if tag["lemma"] in liste:
             return True
     return False
     
@@ -222,7 +212,7 @@ def contains_adj_time(text, tags):
     """checks if time-related adjective is contained, returns BOOL"""
     liste = _getlist("adj_time", "./data/adj.Zeit.xml")
     for word, tag in tags:
-        if word in liste:
+        if tag["lemma"] in liste:
             return True
     return False
     
@@ -230,7 +220,7 @@ def contains_noun_event(text, tags):
     """checks if event-related noun is contained, returns BOOL"""
     liste = _getlist("noun_event", "./data/nomen.Geschehen.xml")
     for word, tag in tags:
-        if word in liste:
+        if tag["lemma"] in liste:
             return True
     return False
     
@@ -238,7 +228,7 @@ def contains_noun_group(text, tags):
     """checks if group-related noun is contained, returns BOOL"""
     liste = _getlist("noun_group", "./data/nomen.Gruppe.xml")
     for word, tag in tags:
-        if word in liste:
+        if tag["lemma"] in liste:
             return True
     return False
     
@@ -246,17 +236,15 @@ def contains_noun_communication(text, tags):
     """checks if communication-related noun is contained, returns BOOL"""
     liste = _getlist("noun_communicaion", "./data/nomen.Kommunikation.xml")
     for word, tag in tags:
-        if word in liste:
+        if tag["lemma"] in liste:
             return True
     return False
-    
-    
 
 def contains_nouns_time(text, tags):
     """checks if time-related noun is contained, returns BOOL"""
     liste = _getlist("nouns_time", "./data/nomen.Zeit.xml")
     for word, tag in tags:
-        if word in liste:
+        if tag["lemma"] in liste:
             return True
     return False
 
@@ -264,7 +252,7 @@ def contains_nouns_location(text, tags):
     """checks if location-related noun is contained, returns BOOL"""
     liste = _getlist("nouns_location", "./data/nomen.Ort.xml")
     for word, tag in tags:
-        if word in liste:
+        if tag["lemma"] in liste:
             return True
     return False
 
