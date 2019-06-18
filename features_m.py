@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 import re
+import xml.etree.ElementTree as ET
+
 
 chrono_list = ["also", "anfangs", "anno", "bald", "beizeiten", "bekanntlich", "bereits", "bisher", "bislang", "dadrauf",
                "dadurch", "daher", "damals", "danach", "damit", "dann", "darauf", "daraufhin", "davor", "dazwischen",
@@ -207,6 +209,22 @@ def pron_proportion(text, tags):
         if tag["pos"] == "PRO":
             pron_counter += 1
     return pron_counter / len(tags) if len(tags) != 0 else -1
+
+
+def asdf(text, tags):
+    if "foolist" in globals():
+        global foolist
+    else:
+        et = ET.parse("./data/bar.xml")
+        root = et.getroot()
+        elist = root.findall(".//orthForm")
+        foolist = [e.text for e in elist]
+        globals()["foolist"] = foolist
+    for word, tag in tags:
+        if word in foolist:
+            return True
+    return False
+
 
 
 if __name__ == "__main__":
