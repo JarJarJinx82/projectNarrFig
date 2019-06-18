@@ -183,7 +183,7 @@ def variance_from_mean_speech_proportion(block):
     varNameMean = "mean_speech_prop_" + block.title
     if varNameMean not in globals():
         sprecherCount = len(set([b.sprecher for b in ListOfPersonenreden]))
-        mean = globals()[varNameMean] = total / sprecherCount
+        mean = globals()[varNameMean] = (total / sprecherCount) / total
     else:
         mean = globals()[varNameMean]
 
