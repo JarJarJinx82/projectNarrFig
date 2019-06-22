@@ -17,6 +17,8 @@ class Catma:
         self.typeDict = self.create_typeDict()
         self.idDict = self.create_idDict()
         self.dp = self.getDP()
+        self.title = self.root.find(f".//{self.tei}titleStmt/{self.tei}title").text
+        self.title = re.match("Binnenerzählungen_vereinfacht_(.*)", self.title).group(1)
 
         """ postagging here
         self.text = self.extract_text()

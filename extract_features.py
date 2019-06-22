@@ -74,8 +74,6 @@ def extract_blocks(cat) -> list:
     inBlock = False  # remembers if right now in Block while iterating
     tmp = []  # list of Segments that belong to same Block
     sprecher = None
-    title = cat.root.find(f".//{cat.tei}titleStmt/{cat.tei}title").text
-    title = re.match("Binnenerzählungen_vereinfacht_(.*)", title).group(1)
 
     # iterating over all catma-segments
     segments = cat.root.findall(f".//{cat.tei}seg")
@@ -95,7 +93,7 @@ def extract_blocks(cat) -> list:
                 tmp.append(seg)
             else:  # end of Block
                 #print(sprecher)
-                temp_block = Block(tmp, sprecher, title)
+                temp_block = Block(tmp, sprecher, cat.title)
                 listOfBlocks.append(temp_block)
                 tmp = []
                 sprecher = None
@@ -325,10 +323,11 @@ if __name__ == "__main__":
     list_to_pickle = []
     # iterate over the different files
     for i, inf in enumerate(dramen):  # iterate over one of the to lists with all the dramen
+        name = inf if not args.input_preprepared else inf[0].title
+        print(f"\nWorking on file #{i + 1}/{len(dramen)}\n{name}\n", file=sys.stderr)
         id = (i+1)*10000
 
         if not args.input_preprepared:  # if iterating over files
-            print(f"\nWorking on file #{i + 1}/{len(args.files)}\n{inf}\n", file=sys.stderr)
             # get the annotation
             anno = Catma(inf)
             # get the Blocks from the annotation
