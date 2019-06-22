@@ -125,7 +125,7 @@ def extract_blocks(cat) -> list:
 """Special functions, that can't be in other file"""
 
 
-def contains_neper_local(text, tags):
+def li_contains_neper_local(text, tags):
     """True if someone from the Dramatis Personae is mentioned"""
     global anno
     for word, tag in tags:
@@ -135,7 +135,7 @@ def contains_neper_local(text, tags):
     return False
 
 
-def contains_selfref(block):
+def gb_contains_selfref(block):
     """True if speaker is mentioned."""
     sprechers = block.sprecher.split()
     for word, tag in block.tags:
@@ -147,7 +147,7 @@ def contains_selfref(block):
         return False
 
 
-def total_speech_proportion(block):
+def bp_total_speech_proportion(block):
     """Redeanteil dieser Person generell"""
     varName = "speech_prp_" + block.sprecher
     if varName not in globals():
@@ -165,7 +165,7 @@ def total_speech_proportion(block):
         return globals()[varName]
 
 
-def variance_from_mean_speech_proportion(block):
+def bp_variance_from_mean_speech_proportion(block):
     """Redeanteil dieser Person - Mittelwert aller Redeanteile"""
     varName = "speech_prp_" + block.sprecher
     global ListOfPersonenreden
@@ -190,7 +190,7 @@ def variance_from_mean_speech_proportion(block):
     return prop - mean
 
 
-def first_appearance(block):
+def bp_first_appearance(block):
     """Der erste Auftritt der Figur (0=am Anfang, 1=am Ende)"""
     if block.sprecher == None:
         return None
@@ -206,7 +206,7 @@ def first_appearance(block):
         return globals()[varName]
 
 
-def last_appearance(block):
+def bp_last_appearance(block):
     """Der letzte Auftritt der Figur (0=am Anfang, 1=am Ende)"""
     if block.sprecher == None:
         return None
@@ -222,7 +222,7 @@ def last_appearance(block):
         return globals()[varName]
 
 
-def variance_from_median_length_total(text, tags):
+def bp_variance_from_median_length_total(text, tags):
     """Varianz vom Median aller Längen, normalisiert an der Gesamtlänge"""
     global ListOfPersonenreden
     length = len(tags)
@@ -237,7 +237,7 @@ def variance_from_median_length_total(text, tags):
     return (length-median_length)/total_length
 
 
-def variance_from_median_length_sd(text, tags):
+def bp_variance_from_median_length_sd(text, tags):
     """Varianz vom Median aller Längen, normalisiert an der Standarddeviation"""
     global ListOfPersonenreden
     length = len(tags)
@@ -253,7 +253,7 @@ def variance_from_median_length_sd(text, tags):
     return (length-median_length)/sd
 
 
-def mean_speech_length_of_speaker(block):
+def bp_mean_speech_length_of_speaker(block):
     """Mittelwert der Längen aller Reden dieser Figur."""
     sp = block.sprecher
     varName = "mean_speech_length_"+sp

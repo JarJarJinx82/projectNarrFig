@@ -19,7 +19,7 @@ chrono_list = ["also", "anfangs", "anno", "bald", "beizeiten", "bekanntlich", "b
 # features
 
 
-def chronologically_structured(text, tags):
+def li_chronologically_structured(text, tags):
     """compares each word with a wordlist of chronologically structuring terms, returns BOOL"""
     for word in tags:
         if word[0].lower() in chrono_list:
@@ -27,7 +27,7 @@ def chronologically_structured(text, tags):
     return False
 
 
-def past_proportion(text, tags):
+def gp_past_proportion(text, tags):
     """"counts all verbs that are conjugated in past tense and divides them with all verbs, returns FLOAT"""
     allverbcount = 0
     pastverbcount = 0
@@ -40,7 +40,7 @@ def past_proportion(text, tags):
     return pastverbcount / allverbcount if allverbcount != 0 else -1
 
 
-def contains_past(text, tags):
+def gb_contains_past(text, tags):
     """is searching for verbs conjugated in past tense, returns true if at least 1 verb stands in past tense (BOOL)"""
     for word, tag in tags:
         if tag["pos"][0] == "V" and "tense" in tag["attributes"] and tag["attributes"]["tense"] == "Past":
@@ -49,7 +49,7 @@ def contains_past(text, tags):
 
 
 # futur2 wird momentan noch nicht gefunden, muss implementiert werden + durch was soll nun geteilt werden?
-def future_proportion(text, tags):
+def gp_future_proportion(text, tags):
     """counts all futur1+futur2 constructions and divides them with all verbs, returns FLOAT"""
     hilfsv_toggle = False
     allverbs = 0
@@ -72,7 +72,7 @@ def future_proportion(text, tags):
     return future_constructions / allverbs if allverbs != 0 else -1
 
 
-def contains_future(text, tags):
+def gb_contains_future(text, tags):
     """is searching for future constellations, returns True if at least 1 constellation was found (BOOL)"""
     hilfsv_toggle = False
     partizip2_toggle = False
@@ -98,13 +98,13 @@ def contains_future(text, tags):
     return False
 
 
-def contains_non_present(text, tags):
+def gb_contains_non_present(text, tags):
     """combines contains_futur/past, returns BOOL"""
     return contains_future(text, tags) or contains_past(text, tags)
 
 
 # umbenannt nach korr. engl. Bezeichnung
-def subj_proportion(text, tags):
+def gp_subj_proportion(text, tags):
     """counts all verbs in subjunctive and divides them with all verbs, returns FLOAT"""
     allverbcount = 0
     subjverbcount = 0
@@ -116,7 +116,7 @@ def subj_proportion(text, tags):
     return subjverbcount / allverbcount if allverbcount != 0 else -1
 
 
-def contains_thirdpers(text, tags):
+def gb_contains_thirdpers(text, tags):
     """is searching for verbs and pronouns in 3rd pers.sg., returns BOOL"""
     for word, tag in tags:
         if tag["pos"][0] == "V" and "person" in tag["attributes"] and tag["attributes"]["person"] == "3":
@@ -127,7 +127,7 @@ def contains_thirdpers(text, tags):
     return False
 
 
-def thirdpers_proportion(text, tags):
+def gp_thirdpers_proportion(text, tags):
     """counts all verbs and pronouns in 3rd pers.sg. and divides them with all verbs and pronouns, returns FLOAT"""
     allverbpron = 0
     thirdpers = 0
@@ -142,7 +142,7 @@ def thirdpers_proportion(text, tags):
     return thirdpers / allverbpron if allverbpron != 0 else -1
 
 
-def exclamation_proportion(text, tags):
+def gp_exclamation_proportion(text, tags):
     """counts all "!" and "?", divides them with all tokens, returns FLOAT"""
     allTokens = len(tags)
     punct = 0
@@ -152,7 +152,7 @@ def exclamation_proportion(text, tags):
     return punct / allTokens if allTokens != 0 else -1
 
 
-def sym_proportion(text, tags):
+def gp_sym_proportion(text, tags):
     """is searching for all special characters and divides them with all tokens, returns FLOAT"""
     # spec_list = re.findall(r"[^a-zA-Z0-9]", text)
     symcount = 0
@@ -163,7 +163,7 @@ def sym_proportion(text, tags):
     return symcount / len(tags) if len(tags) != 0 else -1
 
 
-def adj_proportion(text, tags):
+def gp_adj_proportion(text, tags):
     """counts all adjectives and divides them with all tokens, returns FLOAT"""
     adj_counter = 0
     for word, tag in tags:
@@ -172,7 +172,7 @@ def adj_proportion(text, tags):
     return adj_counter / len(tags) if len(tags) != 0 else -1
 
 
-def noun_proportion(text, tags):
+def gp_noun_proportion(text, tags):
     """counts all nouns (excluding proper names) and divides them with all tokens, returns FLOAT"""
     noun_counter = 0
     for word, tag in tags:
@@ -181,7 +181,7 @@ def noun_proportion(text, tags):
     return noun_counter / len(tags) if len(tags) != 0 else -1
 
 
-def ne_proportion(text, tags):
+def gp_ne_proportion(text, tags):
     """counts all proper names and divides them with all tokens (all nouns could be worth a try), returns FLOAT"""
     ne_counter = 0
     for word, tag in tags:
@@ -191,7 +191,7 @@ def ne_proportion(text, tags):
     return ne_counter / len(tags) if len(tags) != 0 else -1
 
 
-def pron_proportion(text, tags):
+def gp_pron_proportion(text, tags):
     """counts all pronouns (maybe restrict them if it does not work properly) and divides them with all tokens, returns FLOAT"""
     pron_counter = 0
     for word, tag in tags:
@@ -200,7 +200,7 @@ def pron_proportion(text, tags):
     return pron_counter / len(tags) if len(tags) != 0 else -1
 
 
-def contains_verbs_location(text, tags):
+def li_contains_verbs_location(text, tags):
     """checks if location-related verb is contained, returns BOOL"""
     liste = _getlist("verbs_location", "./data/verben.Lokation.xml")
     for word, tag in tags:
@@ -208,7 +208,7 @@ def contains_verbs_location(text, tags):
             return True
     return False
     
-def contains_adj_time(text, tags):
+def li_contains_adj_time(text, tags):
     """checks if time-related adjective is contained, returns BOOL"""
     liste = _getlist("adj_time", "./data/adj.Zeit.xml")
     for word, tag in tags:
@@ -216,7 +216,7 @@ def contains_adj_time(text, tags):
             return True
     return False
     
-def contains_noun_event(text, tags):
+def li_contains_noun_event(text, tags):
     """checks if event-related noun is contained, returns BOOL"""
     liste = _getlist("noun_event", "./data/nomen.Geschehen.xml")
     for word, tag in tags:
@@ -224,7 +224,7 @@ def contains_noun_event(text, tags):
             return True
     return False
     
-def contains_noun_group(text, tags):
+def li_contains_noun_group(text, tags):
     """checks if group-related noun is contained, returns BOOL"""
     liste = _getlist("noun_group", "./data/nomen.Gruppe.xml")
     for word, tag in tags:
@@ -232,7 +232,7 @@ def contains_noun_group(text, tags):
             return True
     return False
     
-def contains_noun_communication(text, tags):
+def li_contains_noun_communication(text, tags):
     """checks if communication-related noun is contained, returns BOOL"""
     liste = _getlist("noun_communicaion", "./data/nomen.Kommunikation.xml")
     for word, tag in tags:
@@ -240,7 +240,7 @@ def contains_noun_communication(text, tags):
             return True
     return False
 
-def contains_nouns_time(text, tags):
+def li_contains_nouns_time(text, tags):
     """checks if time-related noun is contained, returns BOOL"""
     liste = _getlist("nouns_time", "./data/nomen.Zeit.xml")
     for word, tag in tags:
@@ -248,7 +248,7 @@ def contains_nouns_time(text, tags):
             return True
     return False
 
-def contains_nouns_location(text, tags):
+def li_contains_nouns_location(text, tags):
     """checks if location-related noun is contained, returns BOOL"""
     liste = _getlist("nouns_location", "./data/nomen.Ort.xml")
     for word, tag in tags:

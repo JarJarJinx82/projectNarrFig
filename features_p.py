@@ -2,7 +2,7 @@
 from typing import List
 
 
-def verb_proportion(text, tags):
+def gp_verb_proportion(text, tags):
 	"""Anteil der Verben"""
 	verb_count = 0
 	total = len(tags)
@@ -17,7 +17,7 @@ with open("data/names.txt") as inf:
 	names = inf.read().split("\n")
 
 
-def contains_neper_global(text, tags):
+def li_contains_neper_global(text, tags):
 	"""Überprüft ob ein irgendein Personenname im Text vorkommt"""
 	global names
 	for word, tag in tags:
