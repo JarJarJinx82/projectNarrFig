@@ -269,7 +269,7 @@ if __name__ == "__main__":
     """Preparation"""
     # imports all the extraction functions from named modules
     my_imports = ["features_m", "features_p"]
-    func_list = [(mean_speech_length_of_speaker, "block"), (variance_from_median_length_total, None), (variance_from_median_length_sd, None), (last_appearance, "block"), (first_appearance, "block"), (variance_from_mean_speech_proportion, "block"), (total_speech_proportion, "block"), (contains_neper_local, None), (contains_selfref, "block")]
+    func_list = [(bp_mean_speech_length_of_speaker, "block"), (bp_variance_from_median_length_total, None), (bp_variance_from_median_length_sd, None), (bp_last_appearance, "block"), (bp_first_appearance, "block"), (bp_variance_from_mean_speech_proportion, "block"), (bp_total_speech_proportion, "block"), (li_contains_neper_local, None), (gb_contains_selfref, "block")]
     for imp in my_imports:
         mod = __import__(imp)
         func_list += [(o[1], None) for o in getmembers(mod) if isfunction(o[1]) and o[0][0] != "_"]

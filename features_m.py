@@ -100,7 +100,7 @@ def gb_contains_future(text, tags):
 
 def gb_contains_non_present(text, tags):
     """combines contains_futur/past, returns BOOL"""
-    return contains_future(text, tags) or contains_past(text, tags)
+    return gb_contains_future(text, tags) or gb_contains_past(text, tags)
 
 
 # umbenannt nach korr. engl. Bezeichnung
