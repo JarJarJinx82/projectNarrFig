@@ -2,6 +2,7 @@
 
 import argparse, time
 import csv
+import os
 from inspect import getmembers, isfunction
 from catma import Catma
 from RFTagParser import RFTagger
@@ -263,6 +264,7 @@ def bp_mean_speech_length_of_speaker(block):
         return statistics.mean(all_lengths)
 
 
+
 if __name__ == "__main__":
     """Preparation"""
     # imports all the extraction functions from named modules
@@ -273,9 +275,12 @@ if __name__ == "__main__":
         func_list += [(o[1], None) for o in getmembers(mod) if isfunction(o[1]) and o[0][0] != "_"]
     func_list.sort(key=lambda x: x[0].__name__)
 
+    # different topic model settings
+    topic_models = [("tm" + str(n), f"values for topics of topic model with {n} topics") for n in [5,10,15,20]]
+
+
     # command line ui, including parsing of wished features
     from operator import attrgetter
-
     parser = argparse.ArgumentParser(description="Extract features from Catma annotated Files")
     parser.add_argument("files", type=str, nargs="+", help="Filenames of the annotations.")
     parser.add_argument("-n", "--notablehead", action="store_const", const=True, default=False,
@@ -284,13 +289,17 @@ if __name__ == "__main__":
                         help="Exclude Text of Personenrede from csv.")
     megroup = parser.add_mutually_exclusive_group()
     megroup.add_argument("-j", "--just_prepare", action="store_const", const=True, default=False, help="Dont extract any feature, just take the text, devide it and get POS-Tags.")
-    megroup.add_argument("-i", "--input_preprepared", action="store_const", const=True, default=False, help="Dont use XML as input, but pre-prepared binary.")
+    megroup.add_argument("-i", "--input_prepared", action="store_const", const=True, default=False, help="Dont use XML as input, but pre-prepared binary.")
     # create a cl argument entry for every feature
     group = parser.add_argument_group("features")
     group.add_argument("-a", "--all_features", action="store_const", const=True, default=False,
                        help="Extract all avaliable features.")
     for f in func_list:
         group.add_argument("--" + f[0].__name__, action="store_const", const=True, default=False, help=f[0].__doc__)
+
+    for tm in topic_models:
+        group.add_argument("--" + tm[0], action="store_const", const=True, default=False, help=tm[1])
+
     args = parser.parse_args()
 
     """extracting all the features"""
@@ -302,32 +311,31 @@ if __name__ == "__main__":
             if not args.notext:
                 tablehead.append("Personenrede")
             tablehead += [f[0].__name__ for f in func_list if (eval("args." + f[0].__name__) or args.all_features)]
+            for tm in topic_models:
+                    if eval("args." + tm[0]) or args.all_features:
+                        tablehead += [tm[0] + "_" + str(i) for i in range(1, int(tm[0][2:]) + 1)]
+
             tablehead += ["Narrativer_Anteil", "falsifiziert"]
             outData.append(tablehead)
     else:  # prepare pickle output of prepared files
         ts = time.strftime("%Y%m%d-%H%M")
         pickle_file = f"d{len(args.files)}_{ts}.prep"
 
-    if args.input_preprepared:  # take the prepared tuples from the pickle as input
-        #dramen = []
+    if args.input_prepared:  # take the prepared tuples from the pickle as input
         with open(args.files[0], "rb") as inf:
             dramen = pickle.load(inf)
-            #while True:
-            #    try:
-            #        dramen.append(pickle.load(inf))
-            #    except EOFError:
-            #        break
-    else:  # tage the named files as input
+
+    else:  # take the named files as input
         dramen = args.files
 
     list_to_pickle = []
     # iterate over the different files
     for i, inf in enumerate(dramen):  # iterate over one of the to lists with all the dramen
-        name = inf if not args.input_preprepared else inf[0].title
+        name = inf if not args.input_prepared else inf[0].title
         print(f"\nWorking on file #{i + 1}/{len(dramen)}\n{name}\n", file=sys.stderr)
         id = (i+1)*10000
 
-        if not args.input_preprepared:  # if iterating over files
+        if not args.input_prepared:  # if iterating over files
             # get the annotation
             anno = Catma(inf)
             # get the Blocks from the annotation
@@ -345,6 +353,39 @@ if __name__ == "__main__":
 
 
         else:  # extracing features, if not in just-prepare-mode
+            # prepare data for topic modelling
+            tm_path = "tm_" + anno.title
+            if not os.path.exists(tm_path):
+                os.makedirs(tm_path)
+
+            raw_file = tm_path + "/utts_raw.txt"
+            voca_file = tm_path + "/voca.txt"
+            ind_file = tm_path + "/utts_ind.txt"
+            with open(raw_file, "w") as of:
+                for pr in ListOfPersonenreden:
+                    of.write(pr.text.strip() + "\n")
+
+            # prepare the data with btm script
+            os.system(f"python3 BTM/script/indexDocs.py {raw_file} {ind_file} {voca_file}")
+
+            tm_results = {}
+            for tm in topic_models:
+                if eval("args." + tm[0]) or args.all_features:
+                    output_path = tm_path + "/output_" + tm[0] + "/"
+                    if not os.path.exists(output_path):
+                        os.makedirs(output_path)
+
+                    w = sum(1 for line in open(voca_file))
+                    k = int(tm[0][2:])
+                    # train topic model
+                    os.system(f"BTM/src/btm est {k} {w} {50/k:.3f} 0.005 5 501 {ind_file} {output_path}")
+                    # infer p(z|d) for each line
+                    os.system(f"BTM/src/btm inf sum_b {k} {ind_file} {output_path}")
+
+                    with open(f"{output_path}k{k}.pz_d") as res_inf:
+                        tm_results[tm[0]] = [[float(e) for e in line[:k]] for line in csv.reader(res_inf, delimiter=" ")]
+
+
             # iterate over the annotated Blocks
             for j, personenrede in enumerate(ListOfPersonenreden):
                 sys.stderr.write(f"\rProcessing personenrede #{j + 1}/{len(ListOfPersonenreden)}")
@@ -359,6 +400,12 @@ if __name__ == "__main__":
                             retVal.append(func[0](personenrede))
                         else:
                             retVal.append(func[0](personenrede.text, personenrede.tags))
+
+                for tm in topic_models:
+                    if eval("args." + tm[0]) or args.all_features:
+                        retVal += tm_results[tm[0]][j]
+
+
 
                 # complete the data and append it to the data collection
                 retVal.append(personenrede.properties["narrative"])

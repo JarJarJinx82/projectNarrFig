@@ -3,3 +3,5 @@ __pycache__
 RFTagger/*
 .idea/*
 *.prep
+BTM/*
+tm_*/*
