@@ -10,6 +10,7 @@ import sys
 import pickle
 import statistics
 import re
+import nltk
 
 
 """Class for all the Blocks to contain the plain Text and
@@ -361,9 +362,16 @@ if __name__ == "__main__":
             raw_file = tm_path + "/utts_raw.txt"
             voca_file = tm_path + "/voca.txt"
             ind_file = tm_path + "/utts_ind.txt"
+
+
             with open(raw_file, "w") as of:
                 for pr in ListOfPersonenreden:
-                    of.write(pr.text.strip() + "\n")
+                    # preprocess text for topic modelling (filter stopwords and symbols)
+                    toks = nltk.word_tokenize(pr.text, language="german")
+                    sw = nltk.corpus.stopwords.words("german")
+                    no_symbols = r"\w+[-']?\w*"
+                    filtered = [t.lower() for t in toks if t.lower() not in sw and re.match(no_symbols, t)]
+                    of.write(" ".join(filtered) + "\n")
 
             # prepare the data with btm script
             os.system(f"python3 BTM/script/indexDocs.py {raw_file} {ind_file} {voca_file}")
