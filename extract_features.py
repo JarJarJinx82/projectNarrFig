@@ -391,7 +391,7 @@ if __name__ == "__main__":
                     os.system(f"BTM/src/btm inf sum_b {k} {ind_file} {output_path}")
 
                     with open(f"{output_path}k{k}.pz_d") as res_inf:
-                        tm_results[tm[0]] = [[float(e) for e in line[:k]] for line in csv.reader(res_inf, delimiter=" ")]
+                        tm_results[tm[0]] = [[float(e) if e != "-nan" else -1. for e in line[:k]] for line in csv.reader(res_inf, delimiter=" ")]
 
 
             # iterate over the annotated Blocks
@@ -411,7 +411,9 @@ if __name__ == "__main__":
 
                 for tm in topic_models:
                     if eval("args." + tm[0]) or args.all_features:
-                        retVal += tm_results[tm[0]][j]
+                        res = tm_results[tm[0]][j]
+                        # if the filter kicks out every word in an utterance, the result is "nan", this ist handled here
+                        retVal += res if res[0] != float("-nan") else [-1.0 for _ in range(len(res))]
 
 
 
